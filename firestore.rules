@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profile() {
+      return get(/databases/$(database)/documents/master_operators/$(request.auth.uid)).data;
+    }
+    function roleIs(role) { return signedIn() && profile().active != false && profile().role == role; }
+    function isAdmin() { return roleIs('admin'); }
+    function isSupervisor() { return isAdmin() || roleIs('supervisor'); }
+    function isTechnician() { return isSupervisor() || roleIs('technician'); }
+    function isStaff() { return isTechnician() || roleIs('operator'); }
+    function ownsCall() { return resource.data.operatorId == request.auth.uid; }
+    function immutableCallIdentity() {
+      return request.resource.data.id == resource.data.id
+        && request.resource.data.operatorId == resource.data.operatorId
+        && request.resource.data.timestamp == resource.data.timestamp
+        && request.resource.data.lineId == resource.data.lineId;
+    }
+
+    match /andon_calls/{callId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.operatorId == request.auth.uid
+        && request.resource.data.id == callId;
+      allow update: if isTechnician() && immutableCallIdentity()
+        || (roleIs('operator') && ownsCall() && immutableCallIdentity()
+            && request.resource.data.status == resource.data.status);
+      allow delete: if isAdmin();
+    }
+
+    match /master_lines/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+    match /master_machines/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+    match /master_workstations/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /master_operators/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid || isSupervisor();
+      // Production identities are provisioned by an administrator. A browser user
+      // cannot create a profile and grant itself a privileged role.
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.badgeId == resource.data.badgeId
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.lineAccess == resource.data.lineAccess
+        && request.resource.data.active == resource.data.active);
+    }
+
+    match /activity_logs/{id} {
+      allow read: if isSupervisor();
+      allow create: if isStaff() && request.resource.data.userId == request.auth.uid;
+      // Audit records are append-only, including for admins.
+      allow update, delete: if false;
+    }
+
+    match /system_config/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
