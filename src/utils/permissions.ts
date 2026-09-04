@@ -17,7 +17,7 @@ export function canManageUsers(user: UserProfile | null | undefined): boolean {
 
 export function canManageSettings(user: UserProfile | null | undefined): boolean {
   if (!user) return false;
-  return user.role === "admin" || user.role === "supervisor";
+  return user.role === "admin";
 }
 
 export function canResetDemoData(user: UserProfile | null | undefined): boolean {
