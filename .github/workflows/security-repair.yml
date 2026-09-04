@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 5
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -20,35 +20,35 @@ jobs:
         run: |
           from pathlib import Path
           import subprocess
-          # Restore AdminDashboard from the commit before the accidental incomplete write.
-          admin = subprocess.check_output(['git','show','HEAD~1:src/components/AdminDashboard.tsx'], text=True)
-          helper='''\nconst secureRandomUnit = (): number => {\n  const values = new Uint32Array(1);\n  crypto.getRandomValues(values);\n  return values[0] / 0x100000000;\n};\n'''
+          # Recover the complete dashboard from the last known-good commit,
+          # then change only the three pseudorandom metric calls.
+          admin = subprocess.check_output(['git','show','bdefbc425d10f7cbf6292154787e98ed7c5a20a5:src/components/AdminDashboard.tsx'], text=True)
           marker='interface AdminDashboardProps {'
-          if marker not in admin: raise SystemExit('Admin marker missing')
-          admin=admin.replace(marker,helper+'\n'+marker,1)
-          admin=admin.replace('Math.random()', 'secureRandomUnit()')
+          helper='''const secureRandomUnit = (): number => {\n  const values = new Uint32Array(1);\n  crypto.getRandomValues(values);\n  return values[0] / 0x100000000;\n};\n\n'''
+          if marker not in admin: raise SystemExit('Admin marker missing in known-good source')
+          admin=admin.replace(marker,helper+marker,1).replace('Math.random()', 'secureRandomUnit()')
+          if 'Math.random' in admin: raise SystemExit('AdminDashboard still contains Math.random')
           Path('src/components/AdminDashboard.tsx').write_text(admin,encoding='utf-8')
 
           p=Path('src/lib/firestoreService.ts'); s=p.read_text(encoding='utf-8')
           old='id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,'
-          if old not in s: raise SystemExit('firestore random anchor missing')
-          s=s.replace(old,'id: `log-${Date.now()}-${crypto.randomUUID()}`,',1)
+          if old in s: s=s.replace(old,'id: `log-${Date.now()}-${crypto.randomUUID()}`,',1)
           p.write_text(s,encoding='utf-8')
 
           p=Path('src/utils/storage.ts'); s=p.read_text(encoding='utf-8')
           old='const randomSuffix = Math.floor(100 + Math.random() * 900);'
-          if old not in s: raise SystemExit('storage random anchor missing')
-          s=s.replace(old,'const randomValue = new Uint32Array(1);\n  crypto.getRandomValues(randomValue);\n  const randomSuffix = 100 + (randomValue[0] % 900);',1)
+          if old in s: s=s.replace(old,'const randomValue = new Uint32Array(1);\n  crypto.getRandomValues(randomValue);\n  const randomSuffix = 100 + (randomValue[0] % 900);',1)
           p.write_text(s,encoding='utf-8')
       - name: Verify
         run: |
           npm run build
           git diff --check
           ! grep -R "Math.random" -n src --include='*.ts' --include='*.tsx'
+          test "$(cat src/components/AdminDashboard.tsx)" != "PLACEHOLDER"
       - name: Commit repairs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/components/AdminDashboard.tsx src/lib/firestoreService.ts src/utils/storage.ts
-          git commit -m "security: replace remaining pseudorandom generators"
+          git commit -m "security: restore dashboard and replace remaining pseudorandom generators"
           git push
