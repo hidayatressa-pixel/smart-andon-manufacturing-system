@@ -1,21 +1,33 @@
 import { AndonLine, AndonCall, SoundConfig, MasterMachine, UserProfile } from "../types";
 
-// Operational data starts clean. Production master data must come from Firestore.
+// Operational data starts clean.
 export const INITIAL_CALLS: AndonCall[] = [];
 
-// IMPORTANT:
-// Master Line is no longer seeded from source code.
-// - Production: Firestore is the single source of truth.
-// - Demo: localStorage starts empty and is managed by the demo admin/user flow.
-// This guarantees Factory Clean cannot repopulate deleted production lines from bundled source data.
-export const INITIAL_LINES: AndonLine[] = [];
+// Single bootstrap/sample line.
+// This exists only so a fresh/demo installation can pass the line-selection login flow.
+// Production master data remains managed in Firestore by Admin.
+export const INITIAL_LINES: AndonLine[] = [
+  {
+    id: "ASSY1",
+    name: "ASSY1",
+    shortCode: "ASSY1",
+    department: "Assembly",
+    status: "running",
+    workstations: ["Station 1"],
+    activeCallsCount: 0,
+    targetDaily: 0,
+    actualOutput: 0,
+    efficiency: 100,
+    leaderName: "Leader / PIC",
+    currentShift: "Shift 1"
+  }
+];
 
-// Master Machine follows the same rule as Master Line.
-// No machine master is bundled into the application source.
+// Machines are never bundled. Admin creates/imports them into Firestore or demo storage.
 export const INITIAL_MACHINES: MasterMachine[] = [];
 
-// Legacy export retained only for compatibility with modules that still import INITIAL_OPERATORS.
-// Authentication/demo defaults are defined in utils/auth.ts (DEFAULT_USERS), not here.
+// Legacy export retained only for compatibility.
+// Authentication/demo defaults are defined in utils/auth.ts (DEFAULT_USERS).
 export const INITIAL_OPERATORS: UserProfile[] = [];
 
 export const DEFAULT_SOUND_CONFIG: SoundConfig = {
