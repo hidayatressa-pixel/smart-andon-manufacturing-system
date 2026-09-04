@@ -1,19 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Header } from "./components/Header";
+import { MainAndonBoard } from "./components/MainAndonBoard";
 import { OperatorTerminal } from "./components/OperatorTerminal";
-import { MainBoard } from "./components/MainBoard";
+import { ResponderDashboard } from "./components/ResponderDashboard";
 import { PlantLayoutMap } from "./components/PlantLayoutMap";
-import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
-import { ReportsView } from "./components/ReportsView";
-import { AdminDashboard } from "./components/AdminDashboard";
-import { ConfigModal } from "./components/ConfigModal";
+import { AnalyticsReports } from "./components/AnalyticsReports";
 import { MasterDataManager } from "./components/MasterDataManager";
+import { ActivityLogsViewer } from "./components/ActivityLogsViewer";
+import { AdminDashboard } from "./components/AdminDashboard";
 import { LoginScreen } from "./components/LoginScreen";
 import { LoginModal } from "./components/LoginModal";
-import { AndonCall, AppTheme, AppLanguage, SoundConfig, UserProfile } from "./types";
-import { subscribeToCalls, createCall as createCallInDb, updateCall as updateCallInDb, subscribeToLines, subscribeToMachines, subscribeToOperators, subscribeToSoundConfig, saveSoundConfig, logActivity, saveMasterLine as saveMasterLineInDb, saveMasterMachine as saveMasterMachineInDb, saveMasterOperator as saveMasterOperatorInDb, deleteMasterLine as deleteMasterLineInDb, deleteMasterMachine as deleteMasterMachineInDb, deleteMasterOperator as deleteMasterOperatorInDb } from "./lib/firestoreService";
-import { clearSession } from "./lib/authService";
-import { canManageMasterData, canResolveAndon, canViewReports } from "./utils/permissions";
+import { ConfigModal } from "./components/ConfigModal";
+import { CallDetailModal } from "./components/CallDetailModal";
+import { ActiveTab, AndonCall, AndonLine, CallStatus, SoundConfig, UserProfile, ActivityLog, AppTheme, AppLanguage } from "./types";
+import { loadSavedLines, loadSoundConfig, saveSoundConfig, loadSavedTheme, saveThemeToStorage, loadSavedLanguage, saveLanguageToStorage, generateTicketNo } from "./utils/storage";
+import { loadCurrentSession, clearSession } from "./utils/auth";
+import { subscribeAndonCalls, subscribeMasterLines, subscribeActivityLogs, createAndonCallInDb, updateAndonCallInDb, deleteAndonCallInDb, saveMasterLineInDb, logActivity } from "./lib/firestoreService";
+import { playAndonSound, speakAndonCall } from "./utils/audioAlert";
+import { CATEGORIES_DATA } from "./utils/categories";
+import { canManageMasterData, canManageSettings } from "./utils/permissions";
 
 const secureRandomIndex = (length: number): number => {
   if (length <= 1) return 0;
@@ -23,59 +28,76 @@ const secureRandomIndex = (length: number): number => {
 };
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const session = loadCurrentSession();
+    if (session) return session.role === "operator" ? "operator_call" : "main_board";
+    return "main_board";
+  });
+  const [lines, setLines] = useState<AndonLine[]>(loadSavedLines);
   const [calls, setCalls] = useState<AndonCall[]>([]);
-  const [lines, setLines] = useState<any[]>([]);
-  const [machines, setMachines] = useState<any[]>([]);
-  const [operators, setOperators] = useState<UserProfile[]>([]);
-  const [soundConfig, setSoundConfigState] = useState<SoundConfig>({ enabled: true, volume: 0.5, repeatInterval: 5 });
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState("main_board");
-  const [selectedLineId, setSelectedLineId] = useState("");
-  const [theme, setTheme] = useState<AppTheme>("dark");
-  const [language, setLanguage] = useState<AppLanguage>("id");
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [soundConfig, setSoundConfig] = useState<SoundConfig>(loadSoundConfig);
+  const [selectedLineId, setSelectedLineId] = useState<string>("LINE-1");
+  const [theme, setTheme] = useState<AppTheme>(loadSavedTheme);
+  const [language, setLanguage] = useState<AppLanguage>(loadSavedLanguage);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(loadCurrentSession());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [inspectedCall, setInspectedCall] = useState<AndonCall | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
 
-  useEffect(() => subscribeToCalls(setCalls), []);
-  useEffect(() => subscribeToLines(setLines), []);
-  useEffect(() => subscribeToMachines(setMachines), []);
-  useEffect(() => subscribeToOperators(setOperators), []);
-  useEffect(() => subscribeToSoundConfig(setSoundConfigState), []);
+  const isAdmin = canManageSettings(currentUser);
 
-  const isAdmin = currentUser?.role === "admin";
-  const canManageMaster = canManageMasterData(currentUser);
-  const canResolve = canResolveAndon(currentUser);
-  const canReports = canViewReports(currentUser);
+  useEffect(() => { saveThemeToStorage(theme); }, [theme]);
+  useEffect(() => { saveLanguageToStorage(language); }, [language]);
+  useEffect(() => { saveSoundConfig(soundConfig); }, [soundConfig]);
 
-  const handleCreateCall = async (call: Omit<AndonCall, "id" | "timestamp" | "status">) => {
-    await createCallInDb(call);
+  useEffect(() => {
+    const unsubCalls = subscribeAndonCalls(setCalls);
+    const unsubLines = subscribeMasterLines((dbLines) => {
+      if (dbLines && dbLines.length > 0) {
+        setLines(dbLines);
+        if (!selectedLineId || !dbLines.some(l => l.id === selectedLineId)) setSelectedLineId(dbLines[0].id);
+      }
+    });
+    const unsubLogs = subscribeActivityLogs(setActivityLogs);
+    return () => { unsubCalls(); unsubLines(); unsubLogs(); };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    if (!isAdmin && (activeTab === "admin_dashboard" || activeTab === "master_data")) {
+      setActiveTab(currentUser.role === "operator" ? "operator_call" : "main_board");
+    }
+    if (!isAdmin && isConfigOpen) setIsConfigOpen(false);
+  }, [currentUser, activeTab, isConfigOpen, isAdmin]);
+
+  const recalculateLineStatuses = useCallback((currentCalls: AndonCall[]) => {
+    setLines((prevLines) => prevLines.map((line) => {
+      const lineActiveCalls = currentCalls.filter((c) => c.lineId === line.id && c.status !== "resolved");
+      const hasStop = lineActiveCalls.some((c) => c.isLineStopped);
+      return { ...line, status: hasStop ? "critical" : lineActiveCalls.length > 0 ? "warning" : "running", activeCallsCount: lineActiveCalls.length };
+    }));
+  }, []);
+  useEffect(() => { recalculateLineStatuses(calls); }, [calls, recalculateLineStatuses]);
+
+  const handleCreateCall = async (callData: Omit<AndonCall, "id" | "ticketNo" | "timestamp" | "status">) => {
+    const newCall: AndonCall = { ...callData, id: `call-${Date.now()}`, ticketNo: generateTicketNo(), timestamp: Date.now(), status: "calling", escalated: false, escalationLevel: 1 };
+    await createAndonCallInDb(newCall, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
+    if (soundConfig.soundEnabled) playAndonSound(soundConfig.alarmType, newCall.severity, soundConfig.volume);
+    if (soundConfig.soundEnabled && soundConfig.voiceAnnouncement) {
+      const catLabel = language === "en" ? (CATEGORIES_DATA[newCall.category]?.labelEn || newCall.category) : (CATEGORIES_DATA[newCall.category]?.label || newCall.category);
+      speakAndonCall(newCall.lineName, catLabel, newCall.workstation, language === "en" ? "en-US" : soundConfig.voiceLanguage);
+    }
   };
 
-  const handleUpdateCall = async (id: string, updates: Partial<AndonCall>) => {
-    if (!canResolve) throw new Error("PERMISSION_DENIED: responder privileges required");
-    await updateCallInDb(id, updates, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
+  const handleUpdateCallStatus = async (callId: string, status: CallStatus, extra?: Partial<AndonCall>) => {
+    await updateAndonCallInDb(callId, status, extra, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
+    if (inspectedCall && inspectedCall.id === callId) setInspectedCall({ ...inspectedCall, status, ...extra });
   };
 
-  const setSoundConfig = async (config: SoundConfig) => {
-    setSoundConfigState(config);
-    await saveSoundConfig(config, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
+  const handleCancelCall = async (callId: string) => {
+    await deleteAndonCallInDb(callId, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
   };
-
-  const handleSaveLine = async (line: any) => {
-    if (!canManageMaster) throw new Error("PERMISSION_DENIED: administrator privileges required");
-    await saveMasterLineInDb(line, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
-  };
-  const handleSaveMachine = async (machine: any) => {
-    if (!canManageMaster) throw new Error("PERMISSION_DENIED: administrator privileges required");
-    await saveMasterMachineInDb(machine, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
-  };
-  const handleSaveOperator = async (operator: UserProfile) => {
-    if (!canManageMaster) throw new Error("PERMISSION_DENIED: administrator privileges required");
-    await saveMasterOperatorInDb(operator, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined);
-  };
-  const handleDeleteLine = async (id: string) => { if (!canManageMaster) throw new Error("PERMISSION_DENIED"); await deleteMasterLineInDb(id, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined); };
-  const handleDeleteMachine = async (id: string) => { if (!canManageMaster) throw new Error("PERMISSION_DENIED"); await deleteMasterMachineInDb(id, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined); };
-  const handleDeleteOperator = async (id: string) => { if (!canManageMaster) throw new Error("PERMISSION_DENIED"); await deleteMasterOperatorInDb(id, currentUser ? { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role } : undefined); };
 
   const handleUpdateLineTarget = async (lineId: string, targetDaily: number) => {
     if (!canManageMasterData(currentUser)) throw new Error("PERMISSION_DENIED: administrator privileges required");
@@ -111,17 +133,19 @@ export default function App() {
       <Header activeTab={activeTab} setActiveTab={setActiveTab} activeCalls={calls} soundConfig={soundConfig} setSoundConfig={setSoundConfig} currentUser={currentUser} onOpenLogin={() => setIsLoginModalOpen(true)} onLogout={handleLogout} onOpenConfig={() => { if (isAdmin) setIsConfigOpen(true); }} onSimulateEmergency={handleSimulateEmergency} theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {activeTab === "operator_call" && <OperatorTerminal lines={lines} machines={machines} calls={calls} currentUser={currentUser} selectedLineId={selectedLineId} onSelectedLineChange={setSelectedLineId} onCreateCall={handleCreateCall} theme={theme} language={language} />}
-        {activeTab === "main_board" && <MainBoard calls={calls} lines={lines} onUpdateCall={handleUpdateCall} currentUser={currentUser} theme={theme} language={language} />}
-        {activeTab === "plant_layout" && <PlantLayoutMap calls={calls} lines={lines} theme={theme} language={language} />}
-        {activeTab === "analytics" && <AnalyticsDashboard calls={calls} lines={lines} theme={theme} language={language} />}
-        {activeTab === "reports" && canReports && <ReportsView calls={calls} lines={lines} theme={theme} language={language} />}
-        {activeTab === "admin_dashboard" && isAdmin && <AdminDashboard calls={calls} lines={lines} machines={machines} operators={operators} theme={theme} language={language} />}
-        {activeTab === "master_data" && canManageMaster && <MasterDataManager lines={lines} machines={machines} operators={operators} currentUser={currentUser} onSaveLine={handleSaveLine} onSaveMachine={handleSaveMachine} onSaveOperator={handleSaveOperator} onDeleteLine={handleDeleteLine} onDeleteMachine={handleDeleteMachine} onDeleteOperator={handleDeleteOperator} onUpdateLineTarget={handleUpdateLineTarget} theme={theme} language={language} />}
+        {activeTab === "main_board" && <MainAndonBoard lines={lines} calls={calls} onSelectCall={setInspectedCall} onNavigateToCall={(lineId) => { setSelectedLineId(lineId); setActiveTab("operator_call"); }} theme={theme} language={language} />}
+        {activeTab === "operator_call" && <OperatorTerminal lines={lines} activeCalls={calls} selectedLineId={selectedLineId} setSelectedLineId={setSelectedLineId} onSubmitCall={handleCreateCall} onCancelCall={handleCancelCall} currentUser={currentUser} theme={theme} language={language} />}
+        {activeTab === "responder_terminal" && <ResponderDashboard calls={calls} onUpdateCallStatus={handleUpdateCallStatus} currentUser={currentUser} theme={theme} language={language} />}
+        {activeTab === "plant_map" && <PlantLayoutMap lines={lines} activeCalls={calls} onSelectLine={(lineId) => { setSelectedLineId(lineId); setActiveTab("operator_call"); }} onSelectCall={setInspectedCall} theme={theme} language={language} />}
+        {activeTab === "master_data" && isAdmin && <MasterDataManager lines={lines} currentUser={currentUser} theme={theme} language={language} />}
+        {activeTab === "admin_dashboard" && isAdmin && <AdminDashboard lines={lines} calls={calls} currentUser={currentUser} theme={theme} language={language} />}
+        {activeTab === "activity_logs" && <ActivityLogsViewer logs={activityLogs} currentUser={currentUser} theme={theme} language={language} />}
+        {activeTab === "analytics_reports" && <AnalyticsReports calls={calls} lines={lines} activityLogs={activityLogs} theme={theme} language={language} />}
       </main>
 
-      {isAdmin && <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} soundConfig={soundConfig} setSoundConfig={setSoundConfig} theme={theme} language={language} />}
-      {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} currentUser={currentUser} theme={theme} language={language} />}
+      <CallDetailModal call={inspectedCall} onClose={() => setInspectedCall(null)} onUpdateStatus={handleUpdateCallStatus} theme={theme} language={language} />
+      {isAdmin && <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} soundConfig={soundConfig} setSoundConfig={setSoundConfig} lines={lines} onUpdateLineTarget={handleUpdateLineTarget} theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} currentUser={currentUser} />}
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={(user) => { handleLoginSuccess(user); setIsLoginModalOpen(false); }} theme={theme} language={language} />
     </div>
   );
 }
