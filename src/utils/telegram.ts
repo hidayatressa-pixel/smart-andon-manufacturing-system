@@ -1,11 +1,5 @@
 import { AndonCall } from "../types";
 
-// =========================================================================
-// TELEGRAM NOTIFICATION CONFIGURATION
-// =========================================================================
-// Read directly and safely from Vite environment variables.
-// =========================================================================
-
 const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || "";
 const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || "";
 
@@ -19,50 +13,31 @@ function escapeHtml(text: string | undefined | null): string {
     .replace(/'/g, "&#039;");
 }
 
-/**
- * Sends a notification message to the configured Telegram Chat.
- */
 export async function sendTelegramNotification(message: string): Promise<boolean> {
-  // Guard clause to skip sending if token or chat ID is not configured
-  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.trim() === "" || TELEGRAM_BOT_TOKEN.includes("TEMPATKAN_")) {
-    return false;
-  }
-  if (!TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID.trim() === "" || TELEGRAM_CHAT_ID.includes("TEMPATKAN_")) {
-    return false;
-  }
+  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.trim() === "" || TELEGRAM_BOT_TOKEN.includes("TEMPATKAN_")) return false;
+  if (!TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID.trim() === "" || TELEGRAM_CHAT_ID.includes("TEMPATKAN_")) return false;
 
   try {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: "HTML",
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: "HTML" }),
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error("❌ Failed to send Telegram notification:", errText);
+      console.error("Telegram notification failed with HTTP status", response.status);
       return false;
     }
-
     return true;
-  } catch (error) {
-    console.error("❌ Exception occurred while sending Telegram notification:", error);
+  } catch {
+    console.error("Telegram notification request failed.");
     return false;
   }
 }
 
-/**
- * Formats Andon call details into a rich Telegram HTML message template with escaped inputs.
- */
 export function formatAndonCallTelegramMessage(
-  call: AndonCall, 
+  call: AndonCall,
   actionType: "OPEN" | "ACK" | "RESOLVE" | "CANCEL"
 ): string {
   const headerText = {
@@ -72,13 +47,8 @@ export function formatAndonCallTelegramMessage(
     CANCEL: "<b>ANDON CALL CANCELLED</b>"
   }[actionType];
 
-  const timestampStr = new Date(call.timestamp).toLocaleString("id-ID", {
-    timeZone: "Asia/Jakarta"
-  });
-
-  let msg = `-----------------------------------------\n`;
-  msg += `${headerText}\n`;
-  msg += `-----------------------------------------\n`;
+  const timestampStr = new Date(call.timestamp).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+  let msg = `-----------------------------------------\n${headerText}\n-----------------------------------------\n`;
   msg += `<b>No. WO:</b> <code>${escapeHtml(call.ticketNo || call.id)}</code>\n`;
   msg += `<b>Line:</b> ${escapeHtml(call.lineName)}\n`;
   msg += `<b>Workstation:</b> ${escapeHtml(call.workstation)}\n`;
@@ -89,8 +59,7 @@ export function formatAndonCallTelegramMessage(
   msg += `<b>Waktu:</b> ${escapeHtml(timestampStr)}\n`;
 
   if (actionType === "ACK" && call.acknowledgedBy) {
-    msg += `-----------------------------------------\n`;
-    msg += `<b>Responder:</b> ${escapeHtml(call.acknowledgedBy)}\n`;
+    msg += `-----------------------------------------\n<b>Responder:</b> ${escapeHtml(call.acknowledgedBy)}\n`;
     if (call.acknowledgedAt) {
       const responseTime = Math.round((call.acknowledgedAt - call.timestamp) / 1000);
       msg += `<b>Response Time:</b> ${responseTime} detik\n`;
@@ -109,7 +78,5 @@ export function formatAndonCallTelegramMessage(
       msg += `<b>Total Downtime:</b> ${m}m ${s}s\n`;
     }
   }
-  msg += `-----------------------------------------`;
-
-  return msg;
+  return `${msg}-----------------------------------------`;
 }
