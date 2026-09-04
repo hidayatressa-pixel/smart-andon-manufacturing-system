@@ -1,4 +1,4 @@
-export type UserRole = "operator" | "technician" | "supervisor" | "admin";
+export type UserRole = "operator" | "leader" | "supervisor" | "manager" | "admin";
 
 export interface UserProfile {
   id: string;
@@ -51,7 +51,7 @@ export interface AndonCall {
   fiveWhyAnalysis?: string[];
   status: CallStatus;
   escalated?: boolean;
-  escalationLevel?: number; // 1: Leader, 2: SPV, 3: Manager
+  escalationLevel?: number; // 1: Leader/PIC, 2: Supervisor, 3: Manager
 }
 
 export type LineStatus = 'running' | 'warning' | 'critical' | 'maintenance' | 'qc_hold';
