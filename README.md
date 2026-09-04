@@ -1,190 +1,302 @@
-# Smart Andon Manufacturing System 
+# Smart Andon Manufacturing System
 
-An enterprise-grade, real-time **Andon Call Management & Maintenance Response System** engineered specifically for high-velocity industrial manufacturing environments. Designed under Lean Manufacturing and Industry 4.0 principles, this solution bridges the critical gap between the shop floor and maintenance teams—drastically reducing line downtime, accelerating Mean Time to Respond (MTTR), and enforcing standardized Root Cause Analysis (RCA).
+A real-time, role-based Andon and manufacturing response system for production environments. Smart Andon connects shop-floor operators, Leader/PIC, supervisors, managers, and system administrators in one workflow for calling support, responding to abnormalities, monitoring line status, recording response history, and reviewing operational performance.
 
----
-
-##  Executive Overview & Purpose
-
-In modern manufacturing facilities, unaddressed workstation anomalies and delayed maintenance dispatch directly translate to lost output, reduced Overall Equipment Effectiveness (OEE), and escalating operational costs. 
-
-The **Smart Andon Manufacturing System** eliminates traditional communication bottlenecks by digitizing the entire incident lifecycle:
-* **Instant Visual & Audio Signaling**: Alerts the entire plant floor the second a line stop or warning occurs.
-* **Streamlined Work Order Dispatch**: Routes actionable notifications directly to on-duty technicians and integrated Telegram channels.
-* **Enforced Continuous Improvement (Kaizen)**: Requires structured 5-Why Root Cause Analysis before work order closure to eliminate recurring failures.
-* **Executive Decision Intelligence**: Aggregates live KPIs, downtime durations, and Pareto defect distributions into actionable analytics.
+The application is built to be configurable by the customer: production Lines, machines, users, branding, operational data, and the 2D plant layout can be managed without hard-coding a buyer's factory structure into the source.
 
 ---
 
-##  Role-Based Access Control (RBAC) & User Matrix
+## What the System Does
 
-The system provides a strictly controlled multi-tiered security model tailored to industrial plant hierarchies:
+Smart Andon digitizes the operational flow from the first call until resolution:
 
+**Operator Call → Response → Work in Progress → Resolution → History / Analytics**
+
+The current application provides three primary shop-floor Andon calls:
+
+| Andon Call | Visual Identity | Purpose |
+| --- | --- | --- |
+| **Machine Problem** | Red | Call for an abnormal machine / equipment condition. |
+| **Calling Leader** | Yellow / Amber | Request Leader / PIC support at the Line. |
+| **Material Support** | Green | Request material/logistics support. |
+
+The application also retains compatibility with additional historical call categories in the data model, allowing existing records to remain readable while the operator interface focuses on the three primary calls above.
+
+---
+
+## Role-Based Access Control
+
+Smart Andon uses five application roles. **Manager is the highest operational role; Admin is the system-administration role.** These are intentionally separated.
+
+| Role | Operational Scope |
+| --- | --- |
+| **Operator** | Log in to an assigned Line and raise Andon calls. |
+| **Leader / PIC** | Operational responder. Can acknowledge and resolve Andon calls. |
+| **Supervisor** | Leader/PIC capabilities plus operational reports and supervisory visibility. |
+| **Manager** | Highest operational authority. Can respond to Andon calls and access reports/management visibility, but does **not** manage system configuration or Master Data. |
+| **Admin** | System administration: Master Data, users, settings/configuration, reset/cleanup utilities, branding, and other administrative functions. Admin can also perform operational actions when required. |
+
+Permission rules in the application are centralized: Master Data, user management, settings, demo reset, and log cleanup are Admin-only; Andon resolution is available to Leader/PIC, Supervisor, Manager, and Admin; reporting is available to Supervisor, Manager, and Admin; any authenticated plant user can raise an Andon call.
+
+### Line Access
+
+Operational users can be restricted using `lineAccess`:
+
+- `['*']` = access to all Lines.
+- A list of Line IDs = access only to those configured Lines.
+- The Line selected during login is the user's active working Line for that session.
+- Admin is not dependent on a production Line during initial system provisioning, allowing an empty installation to be configured from scratch.
+
+---
+
+## Demo Accounts
+
+The source includes five demo profiles for Demo Mode/testing:
+
+| Role | Badge ID | PIN | Default Line Access |
+| --- | --- | --- | --- |
+| Operator Demo | `OP-1001` | `1234` | `LINE-1`, `LINE-2` |
+| Leader / PIC Demo | `LEADER-2001` | `2345` | All Lines |
+| Supervisor Demo | `SPV-3001` | `3456` | All Lines |
+| Manager Demo | `MGR-4001` | `4567` | All Lines |
+| Admin | `admin01` | `8888` | All Lines |
+
+> Demo credentials are intended for evaluation/local demonstration. Production authentication and authorization should use Firebase Authentication, Firestore user profiles, and the included Firestore Security Rules.
+
+---
+
+## Main Application Modules
+
+### 1. Main Andon Board
+
+Plant-wide operational view of Lines and active Andon calls. The board reflects current call state and Line condition in real time and provides a central view for production monitoring.
+
+### 2. Operator Call Terminal
+
+The shop-floor interface used to select the active Line/workstation and raise Andon calls. Active notifications preserve the category identity used by the call button: Machine Problem is red, Calling Leader is amber/yellow, and Material Support is green.
+
+### 3. Responder Terminal
+
+Operational response workspace for Leader/PIC and higher operational roles. Calls follow the implemented lifecycle:
+
+`calling → acknowledged → in_progress → resolved`
+
+The call record can retain responder identity, acknowledgement/start/resolution timestamps, resolution information, root cause, 5-Why analysis, and escalation information.
+
+### 4. Mapping 2D
+
+A visual production Line map that keeps the existing Smart Andon card design while allowing the factory layout to be configured independently of the UI.
+
+The 2D layout is driven by:
+
+```csv
+line_id,row,column,sequence
+LINE-1,1,1,1
+LINE-2,2,1,2
+LINE-3,2,2,3
+LINE-4,1,2,4
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                   PLANT ADMINISTRATOR                            │
-│   • Full System Configuration & Master Data Management (CSV)     │
-│   • Custom Branding & Audit Trail Inspection                     │
-└─────────────────────────────────┬────────────────────────────────┘
-                                  │
-         ┌────────────────────────┴────────────────────────┐
-         │                                                 │
-┌────────▼───────────────────────┐       ┌─────────────────▼──────────────┐
-│       PLANT SUPERVISOR         │       │     MAINTENANCE TECHNICIAN     │
-│ • Executive Analytics & OEE    │       │ • Work Order Receipt & Dispatch│
-│ • Historical Performance Logs  │       │ • Incident Ack & In-Progress   │
-│ • Data Sanitation & Shift Over │       │ • 5-Why RCA Work Order Closure │
-└────────────────────────────────┘       └────────────────────────────────┘
-                                  │
-                         ┌────────▼────────┐
-                         │  LINE OPERATOR  │
-                         │ • Instant Calls │
-                         │ • Station Alert │
-                         │ • Safety E-Stop │
-                         └─────────────────┘
-```
 
-### Pre-Configured Demo Credentials
+`row` and `column` describe the physical visual position; `sequence` describes process/display order. Live Andon status remains sourced from operational call data rather than being duplicated in the layout file.
 
-| Role | Badge ID (NPK) | Default PIN | Core Permissions & Operational Scope |
-| :--- | :--- | :--- | :--- |
-| **Operator** | `OP-1001` | `1234` | Create instant Andon calls on assigned lines; toggle line-stop state. |
-| **Technician** | `TECH-2001` | `2345` | Acknowledge alerts, log repair stages, and submit 5-Why RCA root cause resolutions. |
-| **Supervisor** | `SPV-3001` | `3456` | Review plant-wide OEE KPIs, Pareto metrics, MTTR performance, and export reports. |
-| **Administrator** | `ADMIN-99` | `9999` | Manage master datasets (Lines, Machines, Operators), configure branding, inspect audit logs. |
+Admin can access the **Mapping Layout 2D** tools from **Master Data → Template & Panduan / Templates & Guidelines** to:
+
+- Download the Layout 2D CSV template.
+- Upload a customized Layout 2D CSV.
+
+In Firebase mode the layout configuration is stored in system configuration; in Demo Mode it is stored locally in the browser.
+
+### 5. Analytics & Reports
+
+Provides operational visibility based on Andon history, Line data, and activity data. The application includes reporting/analytics views for supervisory and management review, including response/downtime-oriented information and export workflows where available in the UI.
+
+### 6. Activity Logs
+
+Records relevant system and operational activity such as login/logout-related activity, Andon creation and state changes, Master Data changes, and configuration changes. Administrative cleanup remains permission-controlled.
+
+### 7. Admin Dashboard
+
+Administrative/system overview intended for the Admin role. This is separate from the Manager role so operational management does not automatically receive system-administration privileges.
+
+### 8. Master Data Manager
+
+Admin-managed factory configuration including production Lines, machines/equipment, and user/staff profiles. Bulk CSV workflows and downloadable templates are provided for supported Master Data categories, together with the configurable 2D mapping CSV.
+
+### 9. System Configuration & Branding
+
+Admin-only configuration includes application settings such as Andon sound behavior and white-label branding. The UI supports light/dark themes and Indonesian/English application language.
 
 ---
 
-**  Key Features & Modules **
+## Andon Data Model
 
-### 1.Central TV Andon Display Board 
-* **Visual Tower Lights**: High-contrast, color-coded status indicators (🟢 Normal, 🟡 Warning, 🔴 Line Stop / Critical) visible from across the factory floor.
-* **Synthesized Audio Sirens**: Multi-tone audio alerting with configurable chime pitch, volume, and repeat frequencies.
-* **Active Queue & Downtime Clock**: Displays live incident timers updating per second to maintain urgency.
-* **Fullscreen & Kiosk Mode**: One-click fullscreen capability optimized for ceiling-mounted LED/LCD TV monitors.
+Each Andon call can contain operational context including:
 
-### 2.Touch-Optimized Operator Terminal
-* **Intuitive Station Grid**: Ergonomic button layout designed for glove-friendly industrial touchscreens and tablets.
-* **Multi-Category Anomaly Logging**: Fast selection across **Machine Breakdown**, **Quality Defect**, **Material Shortage**, and **Safety Incident**.
-* **Line-Stop Emergency Toggle**: Differentiates between assistance requests and full production-stopping emergencies.
+- Ticket number and Line/workstation.
+- Category and severity.
+- Line-stop state.
+- Operator identity.
+- Machine ID and part number when applicable.
+- Description and timestamps.
+- Acknowledged/responder information.
+- Resolution notes and root-cause information.
+- 5-Why analysis.
+- Escalation state and escalation level.
 
-### 3.Rapid Technician & Maintenance Workbench
-* **3-Phase Workflow**: Standardizes incident resolution into *Acknowledge (ACK)* ➔ *Start Repair (In Progress)* ➔ *Resolved (Closed)*.
-* **Integrated 5-Why RCA Form**: Prompts technicians to document the technical root cause and preventive action before closing any ticket.
-* **Technician Assignment Tracking**: Automatically logs timestamps and assigned badge IDs for audit readiness.
+Escalation levels in the current model are aligned to the operational hierarchy:
 
-### 4.Executive Analytics & Plant KPI Engine
-* **OEE & Production Efficiency**: Live tracking of actual vs. planned target units per shift.
-* **Pareto Anomaly Frequency**: Automatic sorting of issues by category to highlight top downtime contributors.
-* **MTTR Metrics**: Calculates Mean Time to Respond (Acknowledge speed) and Mean Time to Resolve (Repair speed).
-* **Consolidated Data Export**: Generates one-click comprehensive CSV reports for shift handovers and management audits.
-
-### 5.Audit Trail & Master Data Manager
-* **Tamper-Evident Activity Log**: Records every state transition, user login, call creation, and database modification.
-* **Self-Service CSV/Excel Importers**: Bulk upload manufacturing lines, workstation machines, operator badges, and problem classification codes.
-* **Data Sanitation Utility**: One-click purge of trial/simulation tickets to prepare the database for live production.
-
-### 6.Custom Branding & White-Label Capabilities
-* **Adaptive Modern Logo**: Ships with an ultra-minimalist geometric demo logo (`assy`).
-* **Direct Image Upload & URL Sync**: Easily upload your company's official SVG/PNG logo or provide a remote image URL.
-* **Live Theme Preview**: Real-time dual-preview across Light and Dark industrial themes.
-* **Customizable System Title & Dimensions**: Fine-tune the header title, subtitle, and logo height (24px–56px).
+1. Leader / PIC
+2. Supervisor
+3. Manager
 
 ---
 
-## Tangible Business & Operational Benefits
+## Data Modes & Architecture
 
-| Operational Challenge | How Smart Andon Solves It | Measurable Impact |
-| :--- | :--- | :--- |
-| **Delayed Notification** | Instant audible siren and Telegram dispatch when a call is placed. | **↓ 70% Reduction** in initial response lag. |
-| **Recurring Downtime** | Enforced 5-Why Root Cause Analysis for continuous improvement. | **↓ 40% Reduction** in repetitive machine failures. |
-| **Lack of Visibility** | Real-time plant-wide TV display board accessible across all shifts. | **100% Transparency** on active shop floor blockers. |
-| **Manual Record-Keeping** | Automated timestamping of every response phase and CSV report generation. | **Zero manual paperwork** for shift handovers. |
-| **Deployment Complexity** | Instant dual-engine (zero-config Demo Mode vs. Cloud Firebase). | **Live within minutes** on any standard browser. |
+The application supports two operating modes:
+
+### Demo Mode
+
+Designed for product evaluation and local demonstration. Demo data/configuration can use browser storage so the product can be explored without connecting a buyer's production Firebase project.
+
+### Firebase Mode
+
+Designed for real-time shared operation using Firebase Authentication and Cloud Firestore. Firestore subscriptions update calls, Master Lines, activity logs, layout configuration, and other configured data without requiring manual refreshes.
+
+The local browser session is a UI convenience; production authorization is enforced by Firebase Authentication plus Firestore Security Rules.
+
+### Empty-by-Design Master Data
+
+A clean installation does **not** ship with hard-coded production Lines, machines, or operational call history. Master data is customer-managed. This allows the buyer to build the factory structure for their own plant rather than deleting another company's production data first.
 
 ---
 
-## Tech Stack & Architecture
+## Technology Stack
 
-* **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Lucide Icons, Recharts
-* **Backend Runtime**: Node.js, Express.js (Bundled into high-efficiency standalone CommonJS via `esbuild`)
-* **Persistence & Real-Time Sync**: Google Cloud Firestore & Firebase Authentication (with client-side demo fallback)
-* **Reporting & Data Parsing**: PapaParse (CSV) & SheetJS (XLSX)
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS.
+- **UI / Visualization:** Lucide icons, Framer Motion, Recharts.
+- **Cloud:** Firebase Authentication and Cloud Firestore.
+- **CSV / Spreadsheet processing:** PapaParse and SheetJS/XLSX where used by the application.
+- **Runtime tooling:** Node.js / npm.
+- **Deployment:** Vite production build; GitHub Pages workflow is included for the repository demo deployment.
 
 ---
 
-## Environment Configuration (`.env`)
+## Environment Configuration
 
-Configure your environment variables in `.env` to switch between local demo and enterprise cloud mode:
+Copy `.env.example` to `.env` and configure the required values for your deployment.
+
+Typical configuration includes:
 
 ```env
-# Operational Mode: 'demo' for instant offline/browser storage, 'firebase' for real-time cloud database
 VITE_DATA_PROVIDER=demo
 
-# Firebase Credentials (Required when VITE_DATA_PROVIDER=firebase)
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
-
-# System Branding & White-Label Customization (Optional)
-VITE_APP_NAME="ANDON SMART FACTORY"
-VITE_APP_COMPANY="Your Company Name"
-VITE_APP_LOGO_URL=""
-
-# Telegram Bot Real-Time Notification Dispatcher (Optional)
-VITE_TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-VITE_TELEGRAM_CHAT_ID=your_telegram_channel_or_group_id
 ```
 
----
+Use `VITE_DATA_PROVIDER=demo` for local/demo operation. Configure the Firebase variables and the production provider setting when connecting the application to the customer's Firebase project. Refer to `.env.example` for the current supported environment variables rather than relying on old README examples.
 
-##  Quick Start Guide
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/smart-andon-manufacturing-system.git
-   cd smart-andon-manufacturing-system
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-   Open `http://localhost:3000` in your web browser.
-
-4. **Compile for production**:
-   ```bash
-   npm run build
-   ```
+> Firebase client configuration identifies the Firebase project; authorization must be enforced with Firebase Authentication and Firestore Security Rules. Do not treat frontend environment variables as server-side secrets.
 
 ---
 
-## 📚 Administration Manual & CSV Templates
+## Quick Start
 
-For detailed configuration guides, custom logo uploading, trial data reset procedures, and standard master data schemas, refer to the documents in:
-📁 **`assets/instruction_guide/`**
-* **`USER_GUIDE.md`**: Complete operational manual for plant administrators and supervisors.
-* **`template_lines.csv`**: Sample CSV structure for manufacturing lines.
-* **`template_machines.csv`**: Sample CSV structure for equipment and machinery assets.
-* **`template_operators.csv`**: Sample CSV structure for operators, technicians, and staff accounts.
+```bash
+npm ci
+npm run dev
+```
+
+Create a production build with:
+
+```bash
+npm run build
+```
+
+The repository includes `package-lock.json`, so `npm ci` is recommended for reproducible installations and CI builds.
 
 ---
 
-##  A Personal Note from the Creator
+## Initial Setup Flow
 
-> *"Manufacturing excellence is built on speed, clarity, and continuous improvement (Kaizen). This Smart Andon system was crafted with precision to give plant managers, maintenance engineers, and operators a reliable, visually intuitive tool that eliminates operational friction and drives true productivity on the shop floor."*
+For a new customer installation:
 
-Wishing you peak efficiency, safe operations, and continuous growth!
+1. Configure Demo Mode or the customer's Firebase project.
+2. Sign in as Admin/system administrator.
+3. Create or import Master Lines.
+4. Create/import machines and user profiles as required.
+5. Assign operational Line access to users.
+6. Download and customize the Mapping Layout 2D CSV if a custom physical Line arrangement is required.
+7. Upload the Mapping Layout 2D CSV from Master Data → Templates & Guidelines.
+8. Configure branding, language, sound, and other system settings.
+9. Test Operator → Leader/PIC → Supervisor/Manager response flow before production use.
 
-Warm regards,  
+Because Master Lines start empty on a clean installation, an operational demo account whose `lineAccess` references `LINE-1`/`LINE-2` will require those Lines to exist (or its access to be adjusted by Admin) before normal Line-based use.
+
+---
+
+## CSV Templates & User Guide
+
+Supporting material is available under:
+
+`assets/instruction_guide/`
+
+Included files currently provide:
+
+- `USER_GUIDE.md`
+- `template_lines.csv`
+- `template_machines.csv`
+- `template_operators.csv`
+
+The application additionally generates/downloads the Mapping Layout 2D CSV template from the Master Data interface.
+
+---
+
+## Security Model
+
+The project uses layered controls rather than relying only on hidden UI elements:
+
+- Firebase Authentication for production identity.
+- Firestore Security Rules for database authorization.
+- Application-level role guards for navigation and actions.
+- Admin-only Master Data and configuration operations.
+- Sanitization utilities for stored/user-provided application data.
+- Audit/activity logging for relevant operational and administrative events.
+
+For production deployments, review `firestore.rules`, `.env.example`, and `SECURITY_HARDENING_NOTES.md` together with the customer's Firebase configuration before go-live.
+
+---
+
+## Commercial Customization
+
+Smart Andon is designed as a configurable source-code product. A customer can adapt:
+
+- Company identity and branding.
+- Production Lines and workstation structure.
+- Machines/equipment master data.
+- User roles and Line assignments within the supported RBAC model.
+- 2D factory/Line arrangement through CSV.
+- Sound/voice behavior and language/theme preferences.
+- Firebase project and production data ownership.
+
+The buyer's operational database remains separate from the source-code demo configuration when deployed against their own Firebase project.
+
+---
+
+## License
+
+See `LICENSE.md` for the license terms supplied with this repository. Purchasing or receiving the source code does not automatically transfer copyright, resale rights, or exclusive ownership unless a separate written agreement explicitly grants those rights.
+
+---
+
+## Creator
+
 **Ressa Hidayat**  
-*Lead Developer & Industrial Solutions Creator*  
-📬 [hidayatressa@gmail.com](mailto:hidayatressa@gmail.com)
+Industrial Solutions Creator / Developer
+
+Smart Andon was created around practical manufacturing response needs: making abnormalities visible quickly, giving each operational level a clear responsibility, preserving response history, and making the system configurable for different factories rather than locking it to one production Line.
