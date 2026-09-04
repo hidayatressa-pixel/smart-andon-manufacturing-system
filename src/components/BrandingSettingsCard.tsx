@@ -387,7 +387,7 @@ export const BrandingSettingsCard: React.FC<BrandingSettingsCardProps> = ({
                 step="2"
                 value={config.logoHeight || 34}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value);
+                  const val = Number.parseInt(e.target.value);
                   const updated: BrandConfig = { ...config, logoHeight: val };
                   setConfig(updated);
                   saveBrandingToStorage(updated);

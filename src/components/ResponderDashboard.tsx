@@ -453,7 +453,7 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
                           isLight ? "text-slate-700 hover:text-slate-900" : "text-neutral-300 hover:text-white"
                         }`}
                       >
-                        {language === "en" ? "Edit Log" : "Edit Log"}
+                        {"Edit Log"}
                       </button>
                     </div>
                   )}

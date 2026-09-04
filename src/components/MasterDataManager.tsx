@@ -411,7 +411,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
         const targetRaw = getValueByPossibleKeys(row, ["target", "targetdaily", "targetharian", "target_harian"]) || 
           row.targetDaily || row.TargetDaily || row.Target;
-        const targetDaily = parseInt(String(targetRaw)) || 500;
+        const targetDaily = Number.parseInt(String(targetRaw)) || 500;
         
         let workstations: string[] = [];
         const wsRaw = getValueByPossibleKeys(row, ["workstations", "stations", "stasiun", "daftarstasiun", "stasiunkerja", "work_stations"]) || 
@@ -1243,7 +1243,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                     <th className="py-3 px-4">{language === "en" ? "Machine ID" : "ID Mesin"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Machine Name" : "Nama Mesin"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Installed Line & Station" : "Line & Stasiun Terpasang"}</th>
-                    <th className="py-3 px-4">{language === "en" ? "Model & Serial Number" : "Model & Serial Number"}</th>
+                    <th className="py-3 px-4">{"Model & Serial Number"}</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${isLight ? "divide-slate-200 text-slate-700" : "divide-neutral-800 text-neutral-300"}`}>
@@ -1321,7 +1321,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                     <th className="py-3 px-4">{language === "en" ? "Full Name" : "Nama Lengkap"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Department" : "Departemen"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Role Authority" : "Otoritas Sesi"}</th>
-                    <th className="py-3 px-4">{language === "en" ? "Password / PIN" : "Password / PIN"}</th>
+                    <th className="py-3 px-4">{"Password / PIN"}</th>
                     {canManageMaster && <th className="py-3 px-4 text-right">{language === "en" ? "Actions" : "Aksi"}</th>}
                   </tr>
                 </thead>
@@ -1664,7 +1664,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                   <input
                     type="number"
                     value={newLineData.targetDaily}
-                    onChange={(e) => setNewLineData({ ...newLineData, targetDaily: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setNewLineData({ ...newLineData, targetDaily: Number.parseInt(e.target.value) || 0 })}
                     className={`w-full rounded-xl px-3 py-2 border font-mono ${
                       isLight ? "bg-slate-50 border-slate-300 text-slate-900" : "bg-neutral-950 border-neutral-800 text-white"
                     }`}
@@ -1803,10 +1803,11 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                       isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:bg-white" : "bg-neutral-950 border-neutral-800 text-white focus:bg-neutral-900"
                     }`}
                   >
-                    <option value="operator">Operator (Hanya Panggilan Operator)</option>
-                    <option value="leader">Leader / Maintenance (Kecuali Panggilan & Master Data)</option>
-                    <option value="supervisor">Supervisor / Leader (Kecuali Panggilan & Master Data)</option>
-                    <option value="admin">Admin / Developer (Akses Penuh)</option>
+                    <option value="operator">{language === "en" ? "Operator (Operator Call)" : "Operator (Panggilan Operator)"}</option>
+                    <option value="leader">{language === "en" ? "Leader / PIC (Operational Response)" : "Leader / PIC (Respons Operasional)"}</option>
+                    <option value="supervisor">{language === "en" ? "Supervisor (Operations & Reports)" : "Supervisor (Operasional & Laporan)"}</option>
+                    <option value="manager">{language === "en" ? "Manager (All Operational Features)" : "Manager (Seluruh Fitur Operasional)"}</option>
+                    <option value="admin">{language === "en" ? "Admin (System Administration)" : "Admin (Administrasi Sistem)"}</option>
                   </select>
                 </div>
               </div>

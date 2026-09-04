@@ -60,7 +60,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const newUser: UserProfile = sanitizeUserProfile({
       id: `USR-${Date.now()}`,
       name: cleanName,
-      badgeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+      badgeId: `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       role: customRole,
       department: customRole === "leader" ? "Maintenance Dept" : customRole === "supervisor" ? "Production Control" : customRole === "admin" ? "Plant IT" : "Shop Floor Operations",
       lineAccess: ["*"],

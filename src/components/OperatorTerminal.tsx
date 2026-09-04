@@ -168,6 +168,33 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
     (b) => b.id === selectedCategory || normalizeCategoryToPrimary(selectedCategory) === b.id
   ) || PRIMARY_ANDON_BUTTONS[0];
 
+  const activeCallPrimaryCategory = existingCall
+    ? normalizeCategoryToPrimary(existingCall.category)
+    : "abnormal_machine";
+  const activeCallTheme = activeCallPrimaryCategory === "leader_call"
+    ? {
+        panelLight: "bg-amber-50 border-amber-400 text-amber-950",
+        panelDark: "bg-amber-950/40 border-amber-500 text-neutral-100",
+        badge: "bg-amber-500 text-slate-950",
+        icon: "bg-amber-500 text-slate-950",
+        detail: "text-amber-700 dark:text-amber-300",
+      }
+    : activeCallPrimaryCategory === "material_support"
+      ? {
+          panelLight: "bg-emerald-50 border-emerald-400 text-emerald-950",
+          panelDark: "bg-emerald-950/40 border-emerald-500 text-neutral-100",
+          badge: "bg-emerald-600 text-white",
+          icon: "bg-emerald-600 text-white",
+          detail: "text-emerald-700 dark:text-emerald-300",
+        }
+      : {
+          panelLight: "bg-red-50 border-red-400 text-red-950",
+          panelDark: "bg-red-950/40 border-red-500 text-neutral-100",
+          badge: "bg-red-600 text-white",
+          icon: "bg-red-600 text-white",
+          detail: "text-red-700 dark:text-red-300",
+        };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* Header Info */}
@@ -228,17 +255,15 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
       {/* Active Call Alert for this Line/Station */}
       {existingCall && (
         <div className={`border-2 rounded-3xl p-5 shadow-xl animate-pulse flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-          isLight 
-            ? "bg-red-50 border-red-400 text-red-950" 
-            : "bg-red-950/40 border-red-500 text-neutral-100"
+          isLight ? activeCallTheme.panelLight : activeCallTheme.panelDark
         }`}>
           <div className="flex items-start gap-3.5">
-            <div className="p-3 bg-red-600 rounded-2xl text-white shadow-md">
+            <div className={`p-3 rounded-2xl shadow-md ${activeCallTheme.icon}`}>
               <Flame className="w-7 h-7" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="bg-red-600 text-white font-mono text-xs px-2 py-0.5 rounded font-black uppercase">
+                <span className={`font-mono text-xs px-2 py-0.5 rounded font-black uppercase ${activeCallTheme.badge}`}>
                   {language === "en" ? "ACTIVE CALL AT THIS STATION" : "PANGGILAN AKTIF DI STASIUN INI"}
                 </span>
                 <span className="text-xs font-mono font-bold">
@@ -251,7 +276,7 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
               <p className="text-xs mt-0.5 font-medium">
                 {existingCall.description}
               </p>
-              <div className="text-xs text-amber-700 dark:text-amber-300 mt-2 font-mono flex items-center gap-3 font-bold">
+              <div className={`text-xs mt-2 font-mono flex items-center gap-3 font-bold ${activeCallTheme.detail}`}>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
                   {t("waitTime")}: {formatDuration(Date.now() - existingCall.timestamp)}
@@ -435,7 +460,7 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
                     </span>
                   </div>
                   <div className={`text-base font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
-                    {language === "en" ? "CALLING LEADER" : "CALLING LEADER"}
+                    {"CALLING LEADER"}
                   </div>
                   <div className={`text-xs mt-1 leading-relaxed ${isLight ? "text-slate-600" : "text-neutral-300"}`}>
                     {language === "en"
@@ -486,7 +511,7 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
                     </span>
                   </div>
                   <div className={`text-base font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
-                    {language === "en" ? "CALLING MATERIAL SUPPORT" : "CALLING MATERIAL SUPPORT"}
+                    {"CALLING MATERIAL SUPPORT"}
                   </div>
                   <div className={`text-xs mt-1 leading-relaxed ${isLight ? "text-slate-600" : "text-neutral-300"}`}>
                     {language === "en"

@@ -430,7 +430,7 @@ export const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({
             <option value="material_shortage">{language === "en" ? "Material Shortage" : "Material Kurang"}</option>
             <option value="quality_defect">{language === "en" ? "Quality Defect" : "Kualitas"}</option>
             <option value="maintenance_tooling">{language === "en" ? "Tooling / MTC" : "Tooling"}</option>
-            <option value="supervisor_call">{language === "en" ? "Leader Support" : "Leader Support"}</option>
+            <option value="supervisor_call">{"Leader Support"}</option>
             <option value="safety_alert">{language === "en" ? "Safety / EHS" : "K3 / Safety"}</option>
           </select>
         </div>

@@ -438,7 +438,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                 onChange={(e) =>
                   setSoundConfig({
                     ...soundConfig,
-                    volume: parseFloat(e.target.value),
+                    volume: Number.parseFloat(e.target.value),
                   })
                 }
                 className="w-full accent-amber-500 cursor-pointer"
@@ -550,7 +550,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                   <input
                     type="number"
                     defaultValue={l.targetDaily}
-                    onBlur={(e) => onUpdateLineTarget(l.id, parseInt(e.target.value) || l.targetDaily)}
+                    onBlur={(e) => onUpdateLineTarget(l.id, Number.parseInt(e.target.value) || l.targetDaily)}
                     className={`w-20 rounded-lg px-2 py-0.5 text-right font-mono text-xs border focus:outline-none focus:ring-1 focus:ring-amber-500 ${
                       isLight
                         ? "bg-slate-50 border-slate-300 text-slate-900"

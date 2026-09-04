@@ -63,7 +63,7 @@ export const ActivityLogsViewer: React.FC<ActivityLogsViewerProps> = ({
         };
       case "acknowledge_call":
         return {
-          label: language === "en" ? "Acknowledge" : "Acknowledge",
+          label: "Acknowledge",
           bg: isLight ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-blue-500/20 text-blue-400 border-blue-500/30",
           icon: Clock,
         };
@@ -82,7 +82,7 @@ export const ActivityLogsViewer: React.FC<ActivityLogsViewerProps> = ({
       case "upload_master":
       case "update_master":
         return {
-          label: language === "en" ? "Master Data" : "Master Data",
+          label: "Master Data",
           bg: isLight ? "bg-cyan-50 text-cyan-700 border-cyan-200" : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
           icon: Layers,
         };
@@ -198,7 +198,7 @@ export const ActivityLogsViewer: React.FC<ActivityLogsViewerProps> = ({
             <option value="acknowledge_call">{language === "en" ? "Acknowledge Response" : "Acknowledge Respon"}</option>
             <option value="in_progress_call">{language === "en" ? "Start Repair Work" : "Mulai Perbaikan"}</option>
             <option value="resolve_call">{language === "en" ? "Close WO Resolution" : "Penutupan WO"}</option>
-            <option value="upload_master">{language === "en" ? "Upload Master Data" : "Upload Master Data"}</option>
+            <option value="upload_master">{"Upload Master Data"}</option>
             <option value="login">{language === "en" ? "User Authority Login" : "Sesi Otoritas Login"}</option>
           </select>
         </div>
