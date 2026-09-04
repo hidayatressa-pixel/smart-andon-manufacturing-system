@@ -23,95 +23,54 @@ export type CallCategory =
   | 'safety_alert';
 
 export type CallSeverity = 'minor' | 'major' | 'critical_line_stop';
-
 export type CallStatus = 'calling' | 'acknowledged' | 'in_progress' | 'resolved';
 
 export interface AndonCall {
-  id: string;
-  ticketNo?: string;
-  lineId: string;
-  lineName: string;
-  workstation: string;
-  category: CallCategory;
-  severity: CallSeverity;
-  status: CallStatus;
-  timestamp: number;
-  operatorName: string;
-  operatorId: string;
-  machineId?: string;
-  partNumber?: string;
-  description?: string;
-  isLineStopped: boolean;
-  acknowledgedAt?: number;
-  acknowledgedBy?: string;
-  acknowledgedById?: string;
-  inProgressAt?: number;
-  resolvedAt?: number;
-  resolvedBy?: string;
-  resolutionNotes?: string;
-  rootCause?: string;
-  countermeasure?: string;
-  escalated?: boolean;
-  escalationLevel?: number;
+  id: string; ticketNo: string; lineId: string; lineName: string; workstation: string;
+  category: CallCategory; severity: CallSeverity; isLineStopped: boolean;
+  operatorName: string; operatorId: string; machineId?: string; partNumber?: string;
+  description: string; timestamp: number; acknowledgedAt?: number; acknowledgedBy?: string;
+  inProgressAt?: number; resolvedAt?: number; resolvedBy?: string; resolutionNotes?: string;
+  rootCause?: string; fiveWhyAnalysis?: string[]; status: CallStatus; escalated?: boolean;
+  escalationLevel?: number; // 1: Leader/PIC, 2: Supervisor, 3: Manager
 }
 
+export type LineStatus = 'running' | 'warning' | 'critical' | 'maintenance' | 'qc_hold';
 export interface AndonLine {
-  id: string;
-  name: string;
-  shortCode: string;
-  department: string;
-  workstations: string[];
-  targetDaily: number;
-  leaderName: string;
-  status: 'running' | 'warning' | 'critical';
-  activeCallsCount: number;
-  actualOutput: number;
-  efficiency: number;
+  id: string; name: string; shortCode: string; department: string; status: LineStatus;
+  workstations: string[]; activeCallsCount: number; targetDaily: number; actualOutput: number;
+  efficiency: number; leaderName: string; currentShift: string;
 }
 
 export interface MasterMachine {
-  id: string;
-  name: string;
-  lineId: string;
-  workstation?: string;
-  type?: string;
-  model?: string;
-  serialNumber?: string;
-  status?: string;
-  department?: string;
+  id: string; code: string; name: string; lineId: string; lineName: string; workstation: string;
+  modelType?: string; serialNumber?: string; status: 'active' | 'under_maintenance' | 'standby';
 }
+
+export interface MasterWorkstation { id: string; lineId: string; name: string; sequence: number; operatorRoleNeeded?: string; }
 
 export interface ActivityLog {
   id: string;
-  timestamp: number;
-  action: 'login' | 'create_call' | 'acknowledge_call' | 'in_progress_call' | 'resolve_call' | 'delete_call' | 'update_master' | 'upload_master' | 'config_change';
-  title: string;
-  details: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  callId?: string;
-  lineId?: string;
-  ticketNo?: string;
+  action: 'login' | 'logout' | 'create_call' | 'acknowledge_call' | 'in_progress_call' | 'resolve_call' | 'delete_call' | 'upload_master' | 'update_master' | 'config_change';
+  title: string; details: string; userName: string; userId: string; userRole: string; timestamp: number;
+  callId?: string | null; lineId?: string | null; ticketNo?: string | null;
 }
 
-export type ActiveTab = 'main_board' | 'operator_call' | 'responder_terminal' | 'plant_map' | 'analytics_reports' | 'master_data' | 'activity_logs' | 'admin_dashboard';
-
+export type AppTheme = "light" | "dark";
+export type AppLanguage = "id" | "en";
 export interface SoundConfig {
-  soundEnabled: boolean;
-  voiceAnnouncement: boolean;
-  volume: number;
-  alarmType: string;
-  voiceLanguage: string;
+  soundEnabled: boolean; volume: number;
+  alarmType: 'industrial_siren' | 'two_tone_chime' | 'warning_beeps' | 'gentle_bell';
+  voiceAnnouncement: boolean; voiceLanguage: 'id-ID' | 'en-US'; escalationMinutes: number;
 }
 
-export type AppTheme = 'light' | 'dark';
-export type AppLanguage = 'id' | 'en';
-
+export type ActiveTab = 'main_board' | 'operator_call' | 'responder_terminal' | 'plant_map' | 'master_data' | 'activity_logs' | 'analytics_reports' | 'admin_dashboard';
+export interface CategoryMetadata {
+  id: CallCategory; label: string; labelEn: string; icon: string; color: string; bgLight: string;
+  borderLight: string; badgeBg: string; badgeText: string; soundPitch: number;
+  towerColor: 'red' | 'yellow' | 'green' | 'blue' | 'purple' | 'orange' | 'white';
+}
 export interface BrandConfig {
-  customAppName?: string;
-  customAppSubtitle?: string;
-  logoDataUrl?: string;
-  logoHeight?: number;
-  companyName?: string;
+  mode: 'demo' | 'custom_image' | 'custom_text'; customLogoUrl?: string; customLogoText?: string;
+  customAppName?: string; customAppSubtitle?: string; logoHeight?: number;
 }
