@@ -102,13 +102,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, theme,
         if (!IS_DEMO_MODE) await auth.signOut();
         return setErrorMessage(language === "en" ? "Selected production line is invalid." : "Line produksi yang dipilih tidak valid.");
       }
+      const access = matchedUser.lineAccess || [];
+      if (!(access.includes("*") || access.includes(sanitized))) {
+        if (!IS_DEMO_MODE) await auth.signOut();
+        return setErrorMessage(language === "en" ? "This account does not have access to the selected Line." : "Akun ini belum memiliki akses ke Line yang dipilih.");
+      }
       activeLineId = sanitized;
       safeLocalStorageSet("andon_active_login_line_id", activeLineId);
     } else {
-      safeLocalStorageSet("andon_active_login_line_id", "");
+      localStorage.removeItem("andon_active_login_line_id");
     }
 
-    // The selected line is session context only. Never overwrite permanent lineAccess during job rotation.
     const sessionUser: UserProfile = { ...matchedUser };
     saveSession(sessionUser);
     logActivity("login", `User Login: ${sessionUser.name}`, isAdmin ? "Masuk sebagai ADMIN tanpa konteks Line." : `Masuk sebagai ${sessionUser.role.toUpperCase()} di Line ${activeLineId}.`, { name: sessionUser.name, id: sessionUser.badgeId, role: sessionUser.role });
