@@ -1,13 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Check if the user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper to check user's role in the master_operators collection
     function hasProfile() {
       return isAuthenticated() && exists(/databases/$(database)/documents/master_operators/$(request.auth.uid));
     }
@@ -19,68 +16,54 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && (getUserRole() == 'admin');
+      return hasProfile() && getUserRole() == 'admin';
+    }
+
+    function isManager() {
+      return hasProfile() && (getUserRole() == 'manager' || getUserRole() == 'admin');
     }
 
     function isSupervisor() {
-      return isAuthenticated() && (getUserRole() == 'supervisor' || getUserRole() == 'admin');
+      return hasProfile() && (getUserRole() == 'supervisor' || getUserRole() == 'manager' || getUserRole() == 'admin');
     }
 
-    function isTechnician() {
-      return isAuthenticated() && (getUserRole() == 'technician' || getUserRole() == 'supervisor' || getUserRole() == 'admin');
+    function isLeader() {
+      return hasProfile() && (getUserRole() == 'leader' || getUserRole() == 'supervisor' || getUserRole() == 'manager' || getUserRole() == 'admin');
     }
 
-    function isOperator() {
-      return isAuthenticated() && (getUserRole() == 'operator' || getUserRole() == 'technician' || getUserRole() == 'supervisor' || getUserRole() == 'admin');
+    function isPlantUser() {
+      return hasProfile() && (getUserRole() in ['operator', 'leader', 'supervisor', 'manager', 'admin']);
     }
 
-    // 1. ANDON CALLS
     match /andon_calls/{callId} {
-      // Secured: Authenticated plant staff only
       allow read: if hasProfile();
-      
-      // Operators and above can raise a call
-      allow create: if hasProfile() && isOperator();
-      
-      // Operators and above can update status; restrict modification of key historical fields
-      allow update: if isAuthenticated() && isOperator() && (
+      allow create: if isPlantUser();
+      allow update: if isPlantUser() && (
         isSupervisor() || (
           request.resource.data.operatorId == resource.data.operatorId &&
           request.resource.data.timestamp == resource.data.timestamp
         )
       );
-      
-      // Only supervisors and admins can delete or cancel calls
-      allow delete: if hasProfile() && isSupervisor();
+      allow delete: if isSupervisor();
     }
 
-    // 2. MASTER PRODUCTION LINES
     match /master_lines/{lineId} {
       allow read: if hasProfile();
-      allow write: if hasProfile() && isAdmin();
+      allow write: if isAdmin();
     }
 
-    // 3. MASTER MACHINES
     match /master_machines/{machineId} {
       allow read: if hasProfile();
-      allow write: if hasProfile() && isAdmin();
+      allow write: if isAdmin();
     }
 
-    // 4. MASTER OPERATORS (PROFILES)
     match /master_operators/{operatorId} {
-      // Secured: Authenticated users can read profiles for routing and display matching
       allow read: if hasProfile();
-      
-      // Creating a profile: Standard users self-provision as standard operators only; admins can create any role
       allow create: if isAuthenticated() && (
         isAdmin() || (
-          request.auth.uid == operatorId && 
-          request.resource.data.role == 'operator'
+          request.auth.uid == operatorId && request.resource.data.role == 'operator'
         )
       );
-
-      // Updating a profile: Safe self-edit of fields (like display name) is permitted; 
-      // Critical security-related attributes (role, badgeId, email, lineAccess, active) are completely immutable for non-admins
       allow update: if isAuthenticated() && (
         isAdmin() || (
           request.auth.uid == operatorId &&
@@ -91,25 +74,18 @@ service cloud.firestore {
           (!('department' in resource.data) || request.resource.data.department == resource.data.department)
         )
       );
-      
-      // Only Admins can delete user profiles
-      allow delete: if isAuthenticated() && isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // 5. SYSTEM ACTIVITY LOGS (AUDIT TRAIL)
     match /activity_logs/{logId} {
-      // Only supervisors and admins can view audit history logs
-      allow read: if hasProfile() && isSupervisor();
-      // Any authenticated action is allowed to write a log trace
+      allow read: if isSupervisor();
       allow create: if hasProfile();
-      // Historical logs cannot be updated or deleted by anyone except admins
-      allow update, delete: if hasProfile() && isAdmin();
+      allow update, delete: if isAdmin();
     }
 
-    // 6. SYSTEM CONFIGURATION
     match /system_config/{configId} {
       allow read: if hasProfile();
-      allow write: if hasProfile() && isAdmin();
+      allow write: if isAdmin();
     }
   }
 }
