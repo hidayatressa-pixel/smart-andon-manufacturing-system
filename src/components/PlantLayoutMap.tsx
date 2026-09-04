@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { 
   Map, 
   Flame, 
@@ -11,6 +11,7 @@ import {
 import { AndonCall, AndonLine, AppTheme, AppLanguage } from "../types";
 import { CATEGORIES_DATA } from "../utils/categories";
 import { getTranslation, TranslationKey } from "../utils/i18n";
+import { LayoutMappingItem, subscribeLayoutMapping } from "../lib/layoutMappingService";
 
 interface PlantLayoutMapProps {
   lines: AndonLine[];
@@ -30,6 +31,10 @@ export const PlantLayoutMap: React.FC<PlantLayoutMapProps> = ({
   language = "id",
 }) => {
   const [selectedLineForDetail, setSelectedLineForDetail] = useState<AndonLine | null>(lines[0] || null);
+  const [layoutMapping,setLayoutMapping]=useState<LayoutMappingItem[]>([]);
+  useEffect(()=>subscribeLayoutMapping(setLayoutMapping),[]);
+  const mappedLines=useMemo(()=>{if(!layoutMapping.length)return lines.map((line,index)=>({line,row:Math.floor(index/2)+1,column:index%2+1,sequence:index+1}));const byId=new Map(lines.map(line=>[line.id,line]));const configured=layoutMapping.map(item=>({...item,line:byId.get(item.lineId)})).filter((item):item is LayoutMappingItem & {line:AndonLine}=>Boolean(item.line));const ids=new Set(configured.map(item=>item.lineId));const maxRow=configured.reduce((m,item)=>Math.max(m,item.row),0);const remainder=lines.filter(line=>!ids.has(line.id)).map((line,index)=>({line,row:maxRow+Math.floor(index/2)+1,column:index%2+1,sequence:100000+index}));return [...configured,...remainder].sort((a,b)=>a.sequence-b.sequence);},[layoutMapping,lines]);
+  const layoutColumns=useMemo(()=>Math.max(2,...mappedLines.map(item=>item.column)),[mappedLines]);
 
   const t = (key: TranslationKey, params?: Record<string, string | number>) => 
     getTranslation(language, key, params);
@@ -115,8 +120,8 @@ export const PlantLayoutMap: React.FC<PlantLayoutMapProps> = ({
           </div>
 
           {/* Lines Layout Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-            {lines.map((line) => {
+          <div className="grid gap-4 relative z-10" style={{ gridTemplateColumns: `repeat(${layoutColumns}, minmax(0, 1fr))` }}>
+            {mappedLines.map(({ line, row, column }) => {
               const activeCall = getLineCall(line.id);
               const isLineStop = activeCall?.isLineStopped;
               const hasWarning = activeCall && !isLineStop;
@@ -126,6 +131,7 @@ export const PlantLayoutMap: React.FC<PlantLayoutMapProps> = ({
                 <div
                   key={line.id}
                   id={`map-node-${line.id}`}
+                  style={{ gridRow: row, gridColumn: column }}
                   onClick={() => setSelectedLineForDetail(line)}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative shadow-sm ${
                     isSelected

@@ -17,7 +17,8 @@ import {
   Sparkles,
   ShieldAlert,
   RotateCcw,
-  Building2
+  Building2,
+  Map
 } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -43,6 +44,7 @@ import {
 import { INITIAL_LINES } from "../utils/initialData";
 import { getTranslation, TranslationKey } from "../utils/i18n";
 import { canManageMasterData } from "../utils/permissions";
+import { LayoutMappingItem, saveLayoutMapping } from "../lib/layoutMappingService";
 
 interface MasterDataManagerProps {
   lines: AndonLine[];
@@ -98,6 +100,9 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const layoutFileInputRef=useRef<HTMLInputElement>(null);
+  const downloadLayoutMappingTemplate=()=>{const csv=["line_id,row,column,sequence","LINE-1,1,1,1","LINE-2,2,1,2","LINE-3,2,2,3","LINE-4,1,2,4"].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));const el=document.createElement("a");el.href=url;el.download="template_mapping_2d.csv";el.click();URL.revokeObjectURL(url);};
+  const handleLayoutMappingUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;Papa.parse<Record<string,string>>(file,{header:true,skipEmptyLines:"greedy",complete:async({data})=>{try{const cells=new Set<string>(),ids=new Set<string>(),seqs=new Set<number>();const items:LayoutMappingItem[]=data.map((row,index)=>{const lineId=String(row.line_id||"").trim(),r=Number.parseInt(String(row.row||""),10),c=Number.parseInt(String(row.column||""),10),sequence=Number.parseInt(String(row.sequence||""),10);if(!lineId||r<1||c<1||sequence<1||![r,c,sequence].every(Number.isInteger))throw new Error(`Baris ${index+2}: data mapping tidak valid.`);if(!lines.some(line=>line.id===lineId))throw new Error(`Baris ${index+2}: ${lineId} tidak ditemukan di Master Line.`);const cell=`${r}:${c}`;if(cells.has(cell)||ids.has(lineId)||seqs.has(sequence))throw new Error(`Baris ${index+2}: line, posisi, atau sequence duplikat.`);cells.add(cell);ids.add(lineId);seqs.add(sequence);return{lineId,row:r,column:c,sequence};});await saveLayoutMapping(items,currentUser||undefined);setUploadStatus({success:true,message:`Mapping 2D berhasil disimpan: ${items.length} line.`});}catch(err){setUploadStatus({success:false,message:err instanceof Error?err.message:String(err)});}finally{if(layoutFileInputRef.current)layoutFileInputRef.current.value="";}},error:err=>setUploadStatus({success:false,message:`Gagal membaca CSV mapping: ${err.message}`})});};
 
   // Custom Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -1389,6 +1394,13 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       {/* Sub Tab Content: 3. Templates & Guidelines */}
       {activeSubTab === "templates" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`border rounded-3xl p-5 space-y-3 shadow-sm ${isLight ? "bg-white border-slate-200" : "bg-neutral-900 border-neutral-800"}`}>
+            <div className="flex items-center gap-2"><Map className="w-5 h-5 text-emerald-500"/><h4 className={`font-black text-sm ${isLight ? "text-slate-900" : "text-white"}`}>Mapping Layout 2D</h4></div>
+            <p className={`text-xs ${isLight ? "text-slate-600" : "text-neutral-400"}`}>{language === "id" ? "Atur denah Line menggunakan row, column, dan urutan proses." : "Configure the Line layout using row, column, and process sequence."}</p>
+            <button onClick={downloadLayoutMappingTemplate} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${isLight ? "bg-slate-50 text-slate-800 border-slate-300" : "bg-neutral-800 text-neutral-200 border-neutral-700"}`}><Download className="w-3.5 h-3.5"/> Download Template Layout 2D</button>
+            {canManageMaster && <><input ref={layoutFileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleLayoutMappingUpload}/><button onClick={()=>layoutFileInputRef.current?.click()} className="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"><Upload className="w-3.5 h-3.5"/> Upload Mapping Layout 2D</button></>}
+            <div className={`text-[10px] font-mono ${isLight ? "text-slate-500" : "text-neutral-500"}`}>CSV: line_id,row,column,sequence</div>
+          </div>
           <div className={`border rounded-3xl p-5 space-y-3 shadow-sm ${
             isLight ? "bg-white border-slate-200" : "bg-neutral-900 border-neutral-800"
           }`}>
