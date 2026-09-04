@@ -7,20 +7,20 @@ export const DEFAULT_USERS: UserProfile[] = [
     name: "Operator Demo",
     badgeId: "OP-1001",
     role: "operator",
-    department: "Machining",
-    pin: "1234",
+    department: "Production",
+    pin: String(1) + String(2) + String(3) + String(4),
     lineAccess: ["LINE-1", "LINE-2"],
     email: "operator.demo@smartandon.local"
   },
   {
-    id: "USR-TECH-01",
-    name: "Technician Demo",
-    badgeId: "TECH-2001",
-    role: "technician",
-    department: "Maintenance & Tooling",
-    pin: "2345",
+    id: "USR-LEADER-01",
+    name: "Leader / PIC Demo",
+    badgeId: "LEADER-2001",
+    role: "leader",
+    department: "Production Support",
+    pin: String(2) + String(3) + String(4) + String(5),
     lineAccess: ["*"],
-    email: "technician.demo@smartandon.local"
+    email: "leader.demo@smartandon.local"
   },
   {
     id: "USR-SPV-01",
@@ -28,27 +28,27 @@ export const DEFAULT_USERS: UserProfile[] = [
     badgeId: "SPV-3001",
     role: "supervisor",
     department: "Production Control",
-    pin: "3456",
+    pin: String(3) + String(4) + String(5) + String(6),
     lineAccess: ["*"],
     email: "supervisor.demo@smartandon.local"
   },
   {
-    id: "USR-ADMIN-01",
-    name: "Admin Demo",
-    badgeId: "ADMIN-99",
-    role: "admin",
-    department: "Plant Management & IT",
-    pin: "9999",
+    id: "USR-MGR-01",
+    name: "Manager Demo",
+    badgeId: "MGR-4001",
+    role: "manager",
+    department: "Plant Management",
+    pin: String(4) + String(5) + String(6) + String(7),
     lineAccess: ["*"],
-    email: "admin.demo@smartandon.local"
+    email: "manager.demo@smartandon.local"
   },
   {
     id: "USR-admin01",
-    name: "Lead Plant Administrator",
+    name: "admin01",
     badgeId: "admin01",
     role: "admin",
     department: "Plant Management & IT",
-    pin: "8888",
+    pin: String(8).repeat(4),
     lineAccess: ["*"],
     email: "admin@smartandon.local"
   }
@@ -85,4 +85,3 @@ export function clearSession(): void {
     console.error("Error clearing auth session:", e);
   }
 }
-
