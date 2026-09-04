@@ -53,7 +53,7 @@ The system allows bulk importing of manufacturing assets to avoid manual data en
 ### How to Upload Master Data
 1. Navigate to the **Master Data** tab.
 2. Select the target sub-tab:
-   * **Lines (Lini Produksi)**
+   * **Lines (Line Produksi)**
    * **Machines (Daftar Mesin)**
    * **Operators & Users (Karyawan & Akun)**
 3. Click the **"Import CSV / Excel"** button.
@@ -101,7 +101,7 @@ Authorizes plant personnel, badges, and roles.
 | :--- | :--- | :--- | :--- |
 | `badgeId` | **Yes** | `OP-1001` | Employee ID / NPK used for badge sign-in. |
 | `name` | **Yes** | `Agus Pratama` | Full employee name. |
-| `role` | **Yes** | `operator` | Role: `operator`, `technician`, `supervisor`, `admin`. |
+| `role` | **Yes** | `operator` | Role: `operator`, `leader`, `supervisor`, `admin`. |
 | `department` | **Yes** | `Machining` | Assigned department. |
 | `email` | No | `agus@factory.local` | Contact email (optional). |
 
@@ -141,14 +141,14 @@ The application supports a dual-engine data provider architecture:
 ## 6. Incident Handling Lifecycle & 5-Why RCA
 
 ```
-[1. Operator Call] ──▶ [2. Technician ACK] ──▶ [3. In-Progress Repair] ──▶ [4. 5-Why RCA Closure]
+[1. Operator Call] ──▶ [2. Leader / PIC ACK] ──▶ [3. In-Progress Repair] ──▶ [4. 5-Why RCA Closure]
    (🔴 Red Alarm)         (🟡 Yellow State)       (⏱ Active Repair Time)      (🟢 Normal Reset)
 ```
 
 1. **Trigger Call**: Operator clicks a station on the tablet terminal, selects category (Machine, Quality, Material, Safety), and toggles Line-Stop.
-2. **Acknowledge (ACK)**: Maintenance technician acknowledges the ticket, stopping the response timer.
-3. **Start Repair**: Technician initiates physical troubleshooting on the machine.
-4. **Resolution & 5-Why RCA**: Before closing the ticket, the technician completes the **Root Cause Analysis** form (Why 1 through Why 5) and preventive actions to ensure long-term equipment reliability.
+2. **Acknowledge (ACK)**: Maintenance leader acknowledges the ticket, stopping the response timer.
+3. **Start Repair**: Leader / PIC initiates physical troubleshooting on the machine.
+4. **Resolution & 5-Why RCA**: Before closing the ticket, the leader completes the **Root Cause Analysis** form (Why 1 through Why 5) and preventive actions to ensure long-term equipment reliability.
 
 ---
 
@@ -176,7 +176,7 @@ To ensure uninterrupted 24/7 shop floor operation, follow these recommended hard
 | :--- | :--- | :--- |
 | **Plant Central Andon TV** | 55" – 75" Commercial LED Display + Mini PC / Chromebox / Intel NUC | • Resolution: 1080p (Full HD) or 4K.<br>• OS: Windows 10/11 IoT Enterprise, Ubuntu LTS, or ChromeOS.<br>• Mounting: Ceiling or high-wall bracket with clear line-of-sight. |
 | **Operator Workstations** | 10.1" – 15.6" Industrial Panel PC or Rugged Tablet | • Capacitive touch screen (glove-compatible touch mode).<br>• IP54/IP65 dust & splash resistance.<br>• VESA arm mount at machine operator eye-level. |
-| **Maintenance Technicians** | 8" – 10" Rugged Android / iOS Tablets or Mobile Phones | • WiFi 6 / 4G LTE roaming support across manufacturing bays.<br>• Shockproof casing for field troubleshooting. |
+| **Maintenance Leader / PICs** | 8" – 10" Rugged Android / iOS Tablets or Mobile Phones | • WiFi 6 / 4G LTE roaming support across manufacturing bays.<br>• Shockproof casing for field troubleshooting. |
 
 ### 8.2 Automated TV Kiosk Mode Configuration
 

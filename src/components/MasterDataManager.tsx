@@ -311,10 +311,12 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
           let role: UserRole = "operator";
           if (roleRaw.includes("admin") || roleRaw.includes("dev")) {
             role = "admin";
-          } else if (roleRaw.includes("lead") || roleRaw.includes("tech") || roleRaw.includes("maint") || roleRaw.includes("mekanik")) {
-            role = "technician";
+          } else if (roleRaw.includes("manager") || roleRaw.includes("mgr")) {
+            role = "manager";
           } else if (roleRaw.includes("super") || roleRaw.includes("spv") || roleRaw.includes("foreman") || roleRaw.includes("karu")) {
             role = "supervisor";
+          } else if (roleRaw.includes("lead") || roleRaw.includes("pic") || roleRaw.includes("tech") || roleRaw.includes("maint") || roleRaw.includes("mekanik")) {
+            role = "leader";
           }
 
           // Construct user profile object (no pin, password, pass, or sandi columns imported)
@@ -383,12 +385,12 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
     } else if (targetTab === "lines") {
       const parsedLines: AndonLine[] = data.map((row: Record<string, unknown>, idx: number) => {
         const id = (
-          getValueByPossibleKeys(row, ["id", "lineid", "liniid", "kodelini", "line_id"]) || 
+          getValueByPossibleKeys(row, ["id", "lineid", "lineid", "kodeline", "line_id"]) || 
           String(row.id || row.ID || row.LineID || `LINE-${idx + 1}`)
         ).trim();
 
         const name = (
-          getValueByPossibleKeys(row, ["name", "linename", "namalini", "nama_lini", "nama"]) || 
+          getValueByPossibleKeys(row, ["name", "linename", "namaline", "nama_line", "nama"]) || 
           String(row.name || row.Name || row.LineName || `Line ${idx + 1}`)
         ).trim();
 
@@ -456,7 +458,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
       setUploadStatus({
         success: true,
-        message: `Berhasil mengunggah ${parsedLines.length} Master Lini Produksi ke Cloud Firestore.`,
+        message: `Berhasil mengunggah ${parsedLines.length} Master Line Produksi ke Cloud Firestore.`,
       });
     } else if (targetTab === "machines") {
       const parsedMachines: MasterMachine[] = data.map((row: Record<string, unknown>, idx: number) => {
@@ -476,12 +478,12 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
         ).trim();
 
         const lineId = (
-          getValueByPossibleKeys(row, ["lineid", "idlini", "liniid", "line_id"]) || 
+          getValueByPossibleKeys(row, ["lineid", "idline", "lineid", "line_id"]) || 
           String(row.lineId || row.LineID || "LINE-1")
         ).trim();
 
         const lineName = (
-          getValueByPossibleKeys(row, ["linename", "namalini", "line_name"]) || 
+          getValueByPossibleKeys(row, ["linename", "namaline", "line_name"]) || 
           String(row.lineName || row.LineName || "Line 1")
         ).trim();
 
@@ -697,7 +699,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
         {
           badgeId: "TECH-2001",
           name: "Rudi Hermawan",
-          role: "technician",
+          role: "leader",
           department: "Maintenance & Tooling",
           email: "rudi.maint@factory.local",
         },
@@ -851,8 +853,8 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
   const handleDeleteLine = (lineId: string) => {
     setConfirmModal({
       isOpen: true,
-      title: "Hapus Lini Produksi",
-      message: `Apakah Anda yakin ingin menghapus data Lini ${lineId}? Semua stasiun kerja pada lini ini akan dinonaktifkan.`,
+      title: "Hapus Line Produksi",
+      message: `Apakah Anda yakin ingin menghapus data Line ${lineId}? Semua stasiun kerja pada line ini akan dinonaktifkan.`,
       type: "danger",
       onConfirm: async () => {
         await deleteMasterLineInDb(lineId, currentUser ? {
@@ -1148,8 +1150,8 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                   <tr className={`border-b text-[11px] font-bold uppercase ${
                     isLight ? "border-slate-200 text-slate-500 bg-slate-50" : "border-neutral-800 text-neutral-400 bg-neutral-950/50"
                   }`}>
-                    <th className="py-3 px-4">{language === "en" ? "Line Code & ID" : "Kode & ID Lini"}</th>
-                    <th className="py-3 px-4">{language === "en" ? "Manufacturing Line Name" : "Nama Lini Manufaktur"}</th>
+                    <th className="py-3 px-4">{language === "en" ? "Line Code & ID" : "Kode & ID Line"}</th>
+                    <th className="py-3 px-4">{language === "en" ? "Manufacturing Line Name" : "Nama Line Manufaktur"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Department & Leader" : "Departemen & Leader"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Daily Target" : "Target Harian"}</th>
                     <th className="py-3 px-4">{language === "en" ? "Workstations List" : "Daftar Stasiun Kerja (Workstations)"}</th>
@@ -1195,7 +1197,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                               className={`p-1.5 rounded-lg transition-colors ${
                                 isLight ? "text-slate-500 hover:text-slate-900 hover:bg-slate-100" : "text-neutral-400 hover:text-white hover:bg-neutral-800"
                               }`}
-                              title="Edit Lini"
+                              title="Edit Line"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -1204,7 +1206,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                               className={`p-1.5 rounded-lg transition-colors ${
                                 isLight ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-950/40"
                               }`}
-                              title="Hapus Lini"
+                              title="Hapus Line"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1342,11 +1344,11 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                               ? "bg-red-500/10 text-red-600 border border-red-500/20" 
                               : op.role === "supervisor"
                               ? "bg-blue-500/10 text-blue-600 border border-blue-500/20"
-                              : op.role === "technician"
+                              : op.role === "leader"
                               ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
                               : "bg-slate-500/10 text-slate-600 border border-slate-500/20"
                           }`}>
-                            {op.role === "admin" ? "Admin/Developer" : op.role === "supervisor" ? "Leader/SPV" : op.role === "technician" ? "Leader/Tech" : "Operator"}
+                            {op.role === "admin" ? "Admin/Developer" : op.role === "supervisor" ? "Leader/SPV" : op.role === "leader" ? "Leader/Tech" : "Operator"}
                           </span>
                         </td>
                         <td className="py-3 px-4 font-mono text-[11px]">{op.pin || "••••"}</td>
@@ -1506,10 +1508,10 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   <span>
-                    <strong>{language === "en" ? "Reset Production Lines Status:" : "Reset Status Lini Produksi:"}</strong>{" "}
+                    <strong>{language === "en" ? "Reset Production Lines Status:" : "Reset Status Line Produksi:"}</strong>{" "}
                     {language === "en"
                       ? "Returns all lines to Running status (100% Efficiency, 0 Active Calls, 0 Output)."
-                      : "Mengembalikan seluruh lini ke status Running (100% Efisiensi, 0 Panggilan Aktif, Output 0)."}
+                      : "Mengembalikan seluruh line ke status Running (100% Efisiensi, 0 Panggilan Aktif, Output 0)."}
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -1627,7 +1629,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
               <div>
                 <label className={`block font-bold mb-1 ${isLight ? "text-slate-700" : "text-neutral-300"}`}>
-                  Nama Lini Manufaktur
+                  Nama Line Manufaktur
                 </label>
                 <input
                   type="text"
@@ -1699,7 +1701,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md"
                 >
-                  Simpan Lini ke Database
+                  Simpan Line ke Database
                 </button>
               </div>
             </form>
@@ -1802,7 +1804,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                     }`}
                   >
                     <option value="operator">Operator (Hanya Panggilan Operator)</option>
-                    <option value="technician">Leader / Maintenance (Kecuali Panggilan & Master Data)</option>
+                    <option value="leader">Leader / Maintenance (Kecuali Panggilan & Master Data)</option>
                     <option value="supervisor">Supervisor / Leader (Kecuali Panggilan & Master Data)</option>
                     <option value="admin">Admin / Developer (Akses Penuh)</option>
                   </select>

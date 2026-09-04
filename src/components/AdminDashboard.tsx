@@ -376,7 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <p className="text-[11px] font-bold text-neutral-400 pt-1">
             {language === "id" 
-              ? "👉 Cara Beralih: Di halaman Firebase Firestore, klik menu dropdown pilihan database di atas tabel data (yang saat ini bertuliskan '(default)'), lalu klik database kustom di atas. Seluruh data operator, lini, dan log Anda akan langsung muncul seketika!"
+              ? "👉 Cara Beralih: Di halaman Firebase Firestore, klik menu dropdown pilihan database di atas tabel data (yang saat ini bertuliskan '(default)'), lalu klik database kustom di atas. Seluruh data operator, line, dan log Anda akan langsung muncul seketika!"
               : "👉 How to switch: On your Firebase Firestore console page, click the database selector dropdown at the top (currently showing '(default)') and choose the custom database listed above. Your operators, production lines, and logs will appear instantly!"}
           </p>
         </div>
@@ -429,7 +429,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <option value="all">{language === "id" ? "Semua Peran" : "All Roles"}</option>
               <option value="admin">Admin / Developer</option>
               <option value="supervisor">Supervisor / Leader</option>
-              <option value="technician">Technician</option>
+              <option value="leader">Leader / PIC</option>
               <option value="operator">Operator</option>
             </select>
           </div>
@@ -464,7 +464,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               ? "bg-rose-500/10 text-rose-500" 
                               : op.role === "supervisor"
                               ? "bg-amber-500/10 text-amber-500"
-                              : op.role === "technician"
+                              : op.role === "leader"
                               ? "bg-blue-500/10 text-blue-500"
                               : "bg-neutral-500/10 text-neutral-400"
                           }`}>
@@ -484,7 +484,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             ? "bg-rose-500/10 text-rose-500" 
                             : op.role === "supervisor"
                             ? "bg-amber-500/10 text-amber-500"
-                            : op.role === "technician"
+                            : op.role === "leader"
                             ? "bg-blue-500/10 text-blue-500"
                             : "bg-neutral-500/10 text-neutral-400"
                         }`}>
@@ -608,7 +608,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     }`}
                   >
                     <option value="operator">Operator</option>
-                    <option value="technician">Technician</option>
+                    <option value="leader">Leader / PIC</option>
                     <option value="supervisor">Supervisor</option>
                     <option value="admin">Admin / Dev</option>
                   </select>

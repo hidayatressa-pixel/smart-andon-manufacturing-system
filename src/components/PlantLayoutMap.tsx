@@ -295,7 +295,7 @@ export const PlantLayoutMap: React.FC<PlantLayoutMapProps> = ({
             <div className={`border rounded-3xl p-6 text-center text-xs ${
               isLight ? "bg-white border-slate-200 text-slate-500" : "bg-neutral-900 border-neutral-800 text-neutral-500"
             }`}>
-              {language === "en" ? "Click any line on the map to inspect stations." : "Pilih lini pada peta untuk melihat detail stasiun."}
+              {language === "en" ? "Click any line on the map to inspect stations." : "Pilih line pada peta untuk melihat detail stasiun."}
             </div>
           )}
         </div>

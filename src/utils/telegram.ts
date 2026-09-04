@@ -80,7 +80,7 @@ export function formatAndonCallTelegramMessage(
   msg += `${headerText}\n`;
   msg += `-----------------------------------------\n`;
   msg += `<b>No. WO:</b> <code>${escapeHtml(call.ticketNo || call.id)}</code>\n`;
-  msg += `<b>Lini:</b> ${escapeHtml(call.lineName)}\n`;
+  msg += `<b>Line:</b> ${escapeHtml(call.lineName)}\n`;
   msg += `<b>Workstation:</b> ${escapeHtml(call.workstation)}\n`;
   msg += `<b>Kategori:</b> ${escapeHtml(call.category.toUpperCase())}\n`;
   msg += `<b>Severity:</b> ${escapeHtml(call.severity.toUpperCase())}\n`;

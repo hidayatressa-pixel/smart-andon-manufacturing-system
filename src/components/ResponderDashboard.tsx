@@ -278,7 +278,7 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
               {t("noActiveCalls")}
             </div>
             <div className={`text-xs mt-1 ${isLight ? "text-slate-500" : "text-neutral-500"}`}>
-              {language === "en" ? "All lines are operating normally." : "Seluruh lini dalam kondisi normal atau tidak ada WO yang cocok dengan filter."}
+              {language === "en" ? "All lines are operating normally." : "Seluruh line dalam kondisi normal atau tidak ada WO yang cocok dengan filter."}
             </div>
           </div>
         ) : (

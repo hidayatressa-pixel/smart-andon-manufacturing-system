@@ -35,7 +35,7 @@ function assertAdminAction(currentUser?: { role: string }): void {
 }
 
 function assertSupervisorAction(currentUser?: { role: string }): void {
-  if (!currentUser || !["admin", "supervisor"].includes(currentUser.role)) {
+  if (!currentUser || !["admin", "manager", "supervisor"].includes(currentUser.role)) {
     throw new Error("Unauthorized: supervisor privileges required for this action.");
   }
 }
@@ -525,116 +525,69 @@ export async function clearAllCallsInDb(currentUser?: { name: string; id: string
   }
 }
 
+
+async function deleteCollectionInChunks(collectionName: string, preserveDocIds: Set<string> = new Set()): Promise<void> {
+  const snapshot = await getDocs(collection(db, collectionName));
+  const docsToDelete = snapshot.docs.filter((d) => !preserveDocIds.has(d.id));
+  for (let i = 0; i < docsToDelete.length; i += 450) {
+    const batch = writeBatch(db);
+    docsToDelete.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+
 /**
- * Wipes all trial data (calls, test logs) and resets lines to clean state.
+ * Factory Clean: removes operational/master production data while preserving only default master users.
+ * System configuration/branding/Firebase configuration are intentionally preserved.
  */
 export async function clearAllTrialDataInDb(
-  defaultLines: AndonLine[],
+  _defaultLines: AndonLine[],
   currentUser?: { name: string; id: string; role: string }
 ): Promise<void> {
   assertAdminAction(currentUser);
+
   if (IS_DEMO_MODE) {
     demoState.calls = [];
     demoState.logs = [];
-    demoState.operators = DEFAULT_USERS;
-    demoState.lines = defaultLines.map(line => ({
-      ...line,
-      status: "running",
-      activeCallsCount: 0,
-      actualOutput: 0,
-      efficiency: 100,
-    }));
+    demoState.lines = [];
+    demoState.machines = [];
+    demoState.operators = DEFAULT_USERS.map((user) => ({ ...user }));
 
     setLocalStorageData(DEMO_KEYS.CALLS, demoState.calls);
     setLocalStorageData(DEMO_KEYS.LOGS, demoState.logs);
-    setLocalStorageData(DEMO_KEYS.OPERATORS, demoState.operators);
     setLocalStorageData(DEMO_KEYS.LINES, demoState.lines);
+    setLocalStorageData(DEMO_KEYS.MACHINES, demoState.machines);
+    setLocalStorageData(DEMO_KEYS.OPERATORS, demoState.operators);
 
     notifySubscribers("calls");
     notifySubscribers("logs");
-    notifySubscribers("operators");
     notifySubscribers("lines");
-
-    await logActivity(
-      "config_change",
-      "Sistem Siap Digunakan: Database Dibersihkan",
-      "Semua data trial/mock telah dihapus. Sistem dalam kondisi bersih (clean slate) siap untuk operasional pabrik.",
-      currentUser || { name: "System Admin", id: "ADMIN-01", role: "admin" }
-    );
+    notifySubscribers("machines");
+    notifySubscribers("operators");
     return;
   }
 
-  try {
-    // 1. Delete all calls
-    const callsSnap = await getDocs(collection(db, COLLECTIONS.CALLS));
-    const callsBatch = writeBatch(db);
-    callsSnap.docs.forEach((d) => callsBatch.delete(d.ref));
-    await callsBatch.commit();
-
-    // 2. Delete all activity logs
-    const logsSnap = await getDocs(collection(db, COLLECTIONS.LOGS));
-    const logsBatch = writeBatch(db);
-    logsSnap.docs.forEach((d) => logsBatch.delete(d.ref));
-    await logsBatch.commit();
-
-    // 2.5. Reset Operators in DB to clean trial/initial state
-    const opsSnap = await getDocs(collection(db, COLLECTIONS.OPERATORS));
-    const opsDeleteBatch = writeBatch(db);
-    opsSnap.docs.forEach((d) => opsDeleteBatch.delete(d.ref));
-    await opsDeleteBatch.commit();
-
-    const opsBatch = writeBatch(db);
-    DEFAULT_USERS.forEach((op) => {
-      const opDocRef = doc(db, COLLECTIONS.OPERATORS, op.badgeId);
-      opsBatch.set(opDocRef, cleanFirestorePayload(op as unknown as Record<string, unknown>), { merge: true });
-    });
-    await opsBatch.commit();
-
-    // 3. Reset Lines in DB to clean running state
-    const linesBatch = writeBatch(db);
-    defaultLines.forEach((line) => {
-      const cleanLine: AndonLine = {
-        ...line,
-        status: "running",
-        activeCallsCount: 0,
-        actualOutput: 0,
-        efficiency: 100,
-      };
-      const lineDocRef = doc(db, COLLECTIONS.LINES, line.id);
-      linesBatch.set(lineDocRef, cleanFirestorePayload(cleanLine as unknown as Record<string, unknown>), { merge: true });
-    });
-    await linesBatch.commit();
-  } catch (e) {
-    console.warn("Firestore clean trial data batch failed, resetting local fallback:", e);
-    demoState.calls = [];
-    demoState.logs = [];
-    demoState.operators = DEFAULT_USERS;
-    demoState.lines = defaultLines.map(line => ({
-      ...line,
-      status: "running",
-      activeCallsCount: 0,
-      actualOutput: 0,
-      efficiency: 100,
-    }));
-    setLocalStorageData(DEMO_KEYS.CALLS, demoState.calls);
-    setLocalStorageData(DEMO_KEYS.LOGS, demoState.logs);
-    setLocalStorageData(DEMO_KEYS.OPERATORS, demoState.operators);
-    setLocalStorageData(DEMO_KEYS.LINES, demoState.lines);
-    notifySubscribers("calls");
-    notifySubscribers("logs");
-    notifySubscribers("operators");
-    notifySubscribers("lines");
-  }
-
-  // 4. Log clean initialization
-  await logActivity(
-    "config_change",
-    "Sistem Siap Digunakan: Database Dibersihkan",
-    "Semua data trial/mock telah dihapus. Sistem dalam kondisi bersih (clean slate) siap untuk operasional pabrik.",
-    currentUser || { name: "System Admin", id: "ADMIN-01", role: "admin" }
+  // Production is fail-closed: never pretend a remote reset succeeded by silently using local fallback.
+  const defaultBadges = new Set(DEFAULT_USERS.map((user) => user.badgeId));
+  const operatorSnapshot = await getDocs(collection(db, COLLECTIONS.OPERATORS));
+  const defaultOperatorDocIds = new Set(
+    operatorSnapshot.docs
+      .filter((d) => defaultBadges.has(String(d.data().badgeId || "")))
+      .map((d) => d.id)
   );
 
-  // 5. Clean local storage trial artifacts
+  // Never allow Factory Clean to remove the currently authenticated admin profile.
+  const activeAdminDoc = operatorSnapshot.docs.find((d) =>
+    d.id === currentUser?.id || String(d.data().badgeId || "") === currentUser?.id
+  );
+  if (activeAdminDoc) defaultOperatorDocIds.add(activeAdminDoc.id);
+
+  await deleteCollectionInChunks(COLLECTIONS.CALLS);
+  await deleteCollectionInChunks(COLLECTIONS.LOGS);
+  await deleteCollectionInChunks(COLLECTIONS.LINES);
+  await deleteCollectionInChunks(COLLECTIONS.MACHINES);
+  await deleteCollectionInChunks(COLLECTIONS.OPERATORS, defaultOperatorDocIds);
+
   if (typeof window !== "undefined") {
     localStorage.removeItem("andon_smart_factory_calls_v1");
   }
@@ -681,7 +634,7 @@ export async function saveMasterLineInDb(line: AndonLine, currentUser?: { name: 
     if (currentUser) {
       await logActivity(
         "update_master",
-        `Master Lini ${line.name} Disimpan`,
+        `Master Line ${line.name} Disimpan`,
         `Target: ${line.targetDaily} pcs. Stasiun: ${line.workstations?.join(", ") || "-"}.`,
         currentUser,
         { lineId: line.id }
@@ -703,7 +656,7 @@ export async function saveMasterLineInDb(line: AndonLine, currentUser?: { name: 
   if (currentUser) {
     await logActivity(
       "update_master",
-      `Master Lini ${line.name} Disimpan`,
+      `Master Line ${line.name} Disimpan`,
       `Target: ${line.targetDaily} pcs. Stasiun: ${line.workstations?.join(", ") || "-"}.`,
       currentUser,
       { lineId: line.id }
@@ -721,8 +674,8 @@ export async function deleteMasterLineInDb(lineId: string, currentUser?: { name:
     if (currentUser) {
       await logActivity(
         "update_master",
-        `Master Lini ${lineId} Dihapus`,
-        `Lini dihapus dari master konfigurasi.`,
+        `Master Line ${lineId} Dihapus`,
+        `Line dihapus dari master konfigurasi.`,
         currentUser,
         { lineId }
       );
@@ -743,8 +696,8 @@ export async function deleteMasterLineInDb(lineId: string, currentUser?: { name:
   if (currentUser) {
     await logActivity(
       "update_master",
-      `Master Lini ${lineId} Dihapus`,
-      `Lini dihapus dari master konfigurasi.`,
+      `Master Line ${lineId} Dihapus`,
+      `Line dihapus dari master konfigurasi.`,
       currentUser,
       { lineId }
     );
@@ -809,8 +762,8 @@ export async function bulkUploadMasterLinesInDb(
     if (currentUser) {
       await logActivity(
         "upload_master",
-        `Upload Master Lini (${lines.length} Baris)`,
-        `Berhasil mengimpor ${lines.length} master lini produksi dari file Excel/CSV.`,
+        `Upload Master Line (${lines.length} Baris)`,
+        `Berhasil mengimpor ${lines.length} master line produksi dari file Excel/CSV.`,
         currentUser
       );
     }
@@ -835,8 +788,8 @@ export async function bulkUploadMasterLinesInDb(
   if (currentUser) {
     await logActivity(
       "upload_master",
-      `Upload Master Lini (${lines.length} Baris)`,
-      `Berhasil mengimpor ${lines.length} master lini produksi dari file Excel/CSV.`,
+      `Upload Master Line (${lines.length} Baris)`,
+      `Berhasil mengimpor ${lines.length} master line produksi dari file Excel/CSV.`,
       currentUser
     );
   }

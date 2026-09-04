@@ -393,7 +393,7 @@ export const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari WO, lini, deskripsi..."
+              placeholder="Cari WO, line, deskripsi..."
               className={`w-full rounded-xl pl-9 pr-3 py-2 text-xs border focus:outline-none focus:ring-1 focus:ring-amber-500 ${
                 isLight ? "bg-slate-50 border-slate-300 text-slate-900" : "bg-neutral-950 border-neutral-800 text-white"
               }`}
@@ -410,7 +410,7 @@ export const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({
                 isLight ? "bg-slate-50 border-slate-300 text-slate-800" : "bg-neutral-950 border-neutral-800 text-neutral-300"
               }`}
             >
-              <option value="all">Semua Lini</option>
+              <option value="all">Semua Line</option>
               {lines.map((l) => (
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
@@ -446,7 +446,7 @@ export const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({
                   isLight ? "border-slate-200 text-slate-500 bg-slate-50" : "border-neutral-800 text-neutral-400 bg-neutral-950/50"
                 }`}>
                   <th className="py-3 px-4">{language === "en" ? "WO No." : "No. WO"}</th>
-                  <th className="py-3 px-4">{language === "en" ? "Line & Station" : "Lini & Stasiun"}</th>
+                  <th className="py-3 px-4">{language === "en" ? "Line & Station" : "Line & Stasiun"}</th>
                   <th className="py-3 px-4">{language === "en" ? "Category & Issue" : "Kategori & Masalah"}</th>
                   <th className="py-3 px-4">{language === "en" ? "Call Timestamp" : "Waktu Panggilan"}</th>
                   <th className="py-3 px-4">{language === "en" ? "Status & Handling" : "Status & Penanganan"}</th>

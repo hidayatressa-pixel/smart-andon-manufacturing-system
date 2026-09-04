@@ -63,7 +63,7 @@ export function sanitizeMediaUrl(url: unknown): string {
  * Sanitizes a UserProfile object before writing to browser session or storage
  */
 export function sanitizeUserProfile(user: UserProfile): UserProfile {
-  const allowedRoles: UserRole[] = ["operator", "technician", "supervisor", "admin"];
+  const allowedRoles: UserRole[] = ["operator", "leader", "supervisor", "admin"];
   const safeRole: UserRole = allowedRoles.includes(user.role) ? user.role : "operator";
 
   return {

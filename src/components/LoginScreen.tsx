@@ -68,7 +68,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     }
 
     if (!selectedLineId) {
-      setErrorMessage(language === "en" ? "Please select a production line." : "Silakan pilih lini produksi.");
+      setErrorMessage(language === "en" ? "Please select a production line." : "Silakan pilih line produksi.");
       return;
     }
 
@@ -175,7 +175,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       logActivity(
         "login",
         `User Login: ${sessionUser.name}`,
-        `Masuk sebagai ${sessionUser.role.toUpperCase()} di Lini ${safeLineId}.`,
+        `Masuk sebagai ${sessionUser.role.toUpperCase()} di Line ${safeLineId}.`,
         { name: sessionUser.name, id: sessionUser.badgeId, role: sessionUser.role }
       );
 
@@ -277,7 +277,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${
               isLight ? "text-slate-700" : "text-neutral-300"
             }`}>
-              {language === "id" ? "Pilih Lini Produksi (Line)" : "Select Production Line (Line)"}
+              {language === "id" ? "Pilih Line Produksi (Line)" : "Select Production Line (Line)"}
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">

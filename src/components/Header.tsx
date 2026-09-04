@@ -207,7 +207,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {(isAdmin || isOperator) && (
+          {(isAdmin || isOperator || currentUser?.role === "manager") && (
             <button
               id="tab-operator-call"
               onClick={() => setActiveTab("operator_call")}
@@ -402,7 +402,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
                     currentUser.role === "operator"
                       ? "bg-blue-500/20 text-blue-600"
-                      : currentUser.role === "technician"
+                      : currentUser.role === "leader"
                       ? "bg-amber-500/20 text-amber-600"
                       : currentUser.role === "supervisor"
                       ? "bg-purple-500/20 text-purple-600"

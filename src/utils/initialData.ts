@@ -113,9 +113,9 @@ export const INITIAL_OPERATORS: UserProfile[] = [
   },
   {
     id: "TECH-2001",
-    name: "Rudy Herman (Maintenance Technician)",
+    name: "Rudy Herman (Maintenance Leader / PIC)",
     badgeId: "TECH-2001",
-    role: "technician",
+    role: "leader",
     department: "Maintenance & Tooling",
     pin: "1234",
     lineAccess: ["*"],

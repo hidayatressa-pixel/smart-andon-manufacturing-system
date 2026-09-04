@@ -177,7 +177,7 @@ export const MainAndonBoard: React.FC<MainAndonBoardProps> = ({
                 </p>
               </div>
               <span className={`mt-2.5 text-[11px] font-medium ${isLight ? "text-slate-400" : "text-neutral-500"}`}>
-                {language === "en" ? "Rapid On-Site Response" : "Penanganan cepat di lini"}
+                {language === "en" ? "Rapid On-Site Response" : "Penanganan cepat di line"}
               </span>
             </div>
 
@@ -633,7 +633,7 @@ export const MainAndonBoard: React.FC<MainAndonBoardProps> = ({
                     : "border-neutral-800 text-neutral-400 bg-neutral-950/50"
                 }`}>
                   <th className="py-2.5 px-3">{language === "en" ? "WO & Time" : "WO & Waktu"}</th>
-                  <th className="py-2.5 px-3">{language === "en" ? "Line / Station" : "Lini / Stasiun"}</th>
+                  <th className="py-2.5 px-3">{language === "en" ? "Line / Station" : "Line / Stasiun"}</th>
                   <th className="py-2.5 px-3">{language === "en" ? "Issue Category" : "Kategori Masalah"}</th>
                   <th className="py-2.5 px-3">{language === "en" ? "Line Condition" : "Kondisi Line"}</th>
                   <th className="py-2.5 px-3">{t("waitTime")}</th>

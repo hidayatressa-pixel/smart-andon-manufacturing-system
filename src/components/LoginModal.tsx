@@ -62,7 +62,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       name: cleanName,
       badgeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
       role: customRole,
-      department: customRole === "technician" ? "Maintenance Dept" : customRole === "supervisor" ? "Production Control" : customRole === "admin" ? "Plant IT" : "Shop Floor Operations",
+      department: customRole === "leader" ? "Maintenance Dept" : customRole === "supervisor" ? "Production Control" : customRole === "admin" ? "Plant IT" : "Shop Floor Operations",
       lineAccess: ["*"],
     });
 
@@ -168,7 +168,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           ? "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30"
                           : usr.role === "supervisor"
                           ? "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
-                          : usr.role === "technician"
+                          : usr.role === "leader"
                           ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30"
                           : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                       }`}>
@@ -230,9 +230,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   isLight ? "bg-slate-50 border-slate-300 text-slate-900" : "bg-neutral-950 border-neutral-800 text-neutral-200"
                 }`}
               >
-                <option value="operator">Operator (Memanggil Andon Lini)</option>
-                <option value="technician">Teknisi / Responder (Merespon & Menangani Masalah)</option>
-                <option value="supervisor">Supervisor (Manajemen Lini & Target OEE)</option>
+                <option value="operator">Operator (Memanggil Andon Line)</option>
+                <option value="leader">Teknisi / Responder (Merespon & Menangani Masalah)</option>
+                <option value="supervisor">Supervisor (Manajemen Line & Target OEE)</option>
                 <option value="admin">Administrator (Upload Master Data & Konfigurasi Penuh)</option>
               </select>
             </div>

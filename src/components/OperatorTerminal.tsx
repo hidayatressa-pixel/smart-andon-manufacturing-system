@@ -188,7 +188,7 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
               <p className={`text-xs ${isLight ? "text-slate-500" : "text-neutral-400"}`}>
                 {language === "en" 
                   ? "Select line & station, then press 1 of the 3 primary Andon buttons below."
-                  : "Pilih lini & stasiun, lalu tekan salah satu dari 3 tombol panggilan Andon utama di bawah."}
+                  : "Pilih line & stasiun, lalu tekan salah satu dari 3 tombol panggilan Andon utama di bawah."}
               </p>
             </div>
           </div>
@@ -535,7 +535,7 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
                     {language === "en" ? "Line Stop Condition?" : "Kondisi Line Berhenti?"}
                   </div>
                   <div className={`text-[11px] ${isLight ? "text-slate-500" : "text-neutral-400"}`}>
-                    {language === "en" ? "Has production halted completely?" : "Apakah lini stop total?"}
+                    {language === "en" ? "Has production halted completely?" : "Apakah line stop total?"}
                   </div>
                 </div>
                 <button
