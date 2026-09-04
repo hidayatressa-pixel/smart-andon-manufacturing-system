@@ -13,8 +13,6 @@ import { subscribeMasterOperators, logActivity, IS_DEMO_MODE } from "../lib/fire
 import { getTranslation, TranslationKey } from "../utils/i18n";
 import { AppLogo } from "./Logo";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { auth } from "../lib/firebase";
 import { sanitizeIdentifier, safeLocalStorageSet } from "../utils/sanitizer";
 
@@ -74,52 +72,83 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       return;
     }
 
-    let matchedUser: UserProfile | undefined;
+    // Search source: Firestore master operators + fallback preset users (trial data)
+    // We combine them so that default admin and trial accounts are always available as high-reliability fallbacks
+    const allUsers = [...dbOperators];
+    DEFAULT_USERS.forEach((defaultUser) => {
+      const alreadyExists = allUsers.some(
+        (u) => u.badgeId?.toLowerCase() === defaultUser.badgeId?.toLowerCase() ||
+               u.email?.toLowerCase() === defaultUser.email?.toLowerCase()
+      );
+      if (!alreadyExists) {
+        allUsers.push(defaultUser);
+      }
+    });
+
+    let matchedUser: UserProfile | undefined = undefined;
 
     if (IS_DEMO_MODE) {
-      // Demo identities exist only in offline demo mode. They never participate in
-      // cloud authorization and therefore cannot become a production backdoor.
-      const allUsers = [...dbOperators];
-      DEFAULT_USERS.forEach((demoUser) => {
-        if (!allUsers.some((u) => u.badgeId === demoUser.badgeId)) allUsers.push(demoUser);
-      });
       matchedUser = allUsers.find((usr) => {
-        const identity = [usr.id, usr.badgeId, usr.name, usr.email]
-          .some((value) => value?.toLowerCase() === inputClean.toLowerCase());
-        return identity && Boolean(usr.pin) && password === usr.pin;
+        const matchId = usr.id?.toLowerCase() === inputClean.toLowerCase();
+        const matchBadge = usr.badgeId?.toLowerCase() === inputClean.toLowerCase();
+        const matchName = usr.name?.toLowerCase() === inputClean.toLowerCase();
+        const matchEmail = usr.email?.toLowerCase() === inputClean.toLowerCase();
+        
+        // Allow general match if either matches
+        const isUserMatch = matchId || matchBadge || matchName || matchEmail;
+        
+        // Check password/PIN (default to "1234" if not set on the user object)
+        const userPassword = usr.pin || "1234";
+        const isPasswordMatch = password === userPassword;
+
+        return isUserMatch && isPasswordMatch;
       });
     } else {
-      // Cloud mode trusts Firebase Authentication + the server-enforced profile at
-      // master_operators/{auth.uid}. No local PIN bypass, auto-registration, or
-      // client-side role provisioning is permitted.
-      if (!inputClean.includes("@")) {
-        setErrorMessage(language === "en"
-          ? "Cloud mode requires the account email address."
-          : "Mode cloud mewajibkan alamat email akun.");
-        return;
-      }
+      // Production mode: Firebase Auth is the only authentication authority.
+      // No local PIN, preset account, or client-side role may bypass Firebase Auth.
       try {
-        const credential = await signInWithEmailAndPassword(auth, inputClean.toLowerCase(), password);
-        const profileSnap = await getDoc(doc(db, "master_operators", credential.user.uid));
+        if (!inputClean.includes("@")) {
+          setErrorMessage(language === "en"
+            ? "Production login requires the Firebase account email."
+            : "Login produksi wajib menggunakan email akun Firebase.");
+          return;
+        }
+
+        const userCredential = await signInWithEmailAndPassword(auth, inputClean.toLowerCase(), password);
+        const fbUser = userCredential.user;
+
+        // Authorization profile MUST be stored under master_operators/{firebaseAuthUid}.
+        // This keeps Firestore Rules and the UI role mapped to the same trusted identity.
+        const { doc, getDoc } = await import("firebase/firestore");
+        const { db: firestoreDb } = await import("../lib/firebase");
+        const profileSnap = await getDoc(doc(firestoreDb, "master_operators", fbUser.uid));
+
         if (!profileSnap.exists()) {
           await auth.signOut();
           setErrorMessage(language === "en"
-            ? "This account has not been provisioned by an administrator."
-            : "Akun ini belum diprovisikan oleh administrator.");
+            ? "Account authenticated, but no authorized Smart Andon profile exists. Ask an administrator to provision this UID."
+            : "Akun Firebase valid, tetapi profil otorisasi Smart Andon belum dibuat. Minta admin mendaftarkan UID akun ini.");
           return;
         }
-        const profile = profileSnap.data() as UserProfile & { active?: boolean };
-        if (profile.active === false) {
-          await auth.signOut();
-          setErrorMessage(language === "en" ? "This account is disabled." : "Akun ini dinonaktifkan.");
-          return;
+
+        const profile = profileSnap.data() as UserProfile;
+        matchedUser = {
+          ...profile,
+          id: fbUser.uid,
+          email: fbUser.email || profile.email || "",
+          // Never accept a PIN/password from Firestore as session data.
+          pin: undefined,
+        };
+      } catch (err: unknown) {
+        console.error("Firebase Auth login failed:", err);
+        const errCode = typeof err === "object" && err !== null && "code" in err
+          ? String((err as { code: unknown }).code)
+          : "";
+        let errorMsg = language === "en" ? "Authentication failed." : "Autentikasi gagal.";
+        if (errCode === "auth/user-not-found" || errCode === "auth/wrong-password" || errCode === "auth/invalid-credential") {
+          errorMsg = language === "en" ? "Invalid email or password." : "Email atau password salah.";
         }
-        matchedUser = { ...profile, id: credential.user.uid, pin: undefined };
-      } catch (err) {
-        console.warn("Cloud authentication rejected:", err);
-        setErrorMessage(language === "en"
-          ? "Authentication failed. Check your email and password."
-          : "Autentikasi gagal. Periksa email dan password.");
+        setErrorMessage(errorMsg);
         return;
       }
     }
@@ -147,7 +176,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         "login",
         `User Login: ${sessionUser.name}`,
         `Masuk sebagai ${sessionUser.role.toUpperCase()} di Lini ${safeLineId}.`,
-        { name: sessionUser.name, id: sessionUser.id, role: sessionUser.role }
+        { name: sessionUser.name, id: sessionUser.badgeId, role: sessionUser.role }
       );
 
       onLoginSuccess(sessionUser);

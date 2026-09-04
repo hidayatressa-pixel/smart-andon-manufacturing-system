@@ -1,8 +1,6 @@
 import { UserProfile } from "../types";
 import { sanitizeUserProfile, safeLocalStorageSet, safeLocalStorageGet } from "./sanitizer";
 
-const DEMO_PIN = import.meta.env.VITE_DEMO_PIN || "";
-
 export const DEFAULT_USERS: UserProfile[] = [
   {
     id: "USR-OP-01",
@@ -10,7 +8,7 @@ export const DEFAULT_USERS: UserProfile[] = [
     badgeId: "OP-1001",
     role: "operator",
     department: "Machining",
-    pin: DEMO_PIN,
+    pin: "1234",
     lineAccess: ["LINE-1", "LINE-2"],
     email: "operator.demo@smartandon.local"
   },
@@ -20,7 +18,7 @@ export const DEFAULT_USERS: UserProfile[] = [
     badgeId: "TECH-2001",
     role: "technician",
     department: "Maintenance & Tooling",
-    pin: DEMO_PIN,
+    pin: "2345",
     lineAccess: ["*"],
     email: "technician.demo@smartandon.local"
   },
@@ -30,7 +28,7 @@ export const DEFAULT_USERS: UserProfile[] = [
     badgeId: "SPV-3001",
     role: "supervisor",
     department: "Production Control",
-    pin: DEMO_PIN,
+    pin: "3456",
     lineAccess: ["*"],
     email: "supervisor.demo@smartandon.local"
   },
@@ -40,7 +38,7 @@ export const DEFAULT_USERS: UserProfile[] = [
     badgeId: "ADMIN-99",
     role: "admin",
     department: "Plant Management & IT",
-    pin: DEMO_PIN,
+    pin: "9999",
     lineAccess: ["*"],
     email: "admin.demo@smartandon.local"
   },
@@ -50,12 +48,13 @@ export const DEFAULT_USERS: UserProfile[] = [
     badgeId: "admin01",
     role: "admin",
     department: "Plant Management & IT",
-    pin: DEMO_PIN,
+    pin: "8888",
     lineAccess: ["*"],
     email: "admin@smartandon.local"
   }
 ];
 
+// Local session is a UI convenience only. Firestore authorization is enforced by Firebase Auth + Security Rules.
 const AUTH_STORAGE_KEY = "andon_auth_user_session_v1";
 
 export function loadCurrentSession(): UserProfile | null {

@@ -6,6 +6,9 @@ import { AndonCall } from "../types";
 // Read directly and safely from Vite environment variables.
 // =========================================================================
 
+const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || "";
+
 function escapeHtml(text: string | undefined | null): string {
   if (!text) return "-";
   return String(text)
@@ -17,20 +20,40 @@ function escapeHtml(text: string | undefined | null): string {
 }
 
 /**
- * Sends a notification through our same-origin backend. Bot credentials are
- * deliberately server-only and are never bundled into browser JavaScript.
+ * Sends a notification message to the configured Telegram Chat.
  */
 export async function sendTelegramNotification(message: string): Promise<boolean> {
+  // Guard clause to skip sending if token or chat ID is not configured
+  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.trim() === "" || TELEGRAM_BOT_TOKEN.includes("TEMPATKAN_")) {
+    return false;
+  }
+  if (!TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID.trim() === "" || TELEGRAM_CHAT_ID.includes("TEMPATKAN_")) {
+    return false;
+  }
+
   try {
-    const response = await fetch("/api/notifications/telegram", {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ message }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "HTML",
+      }),
     });
-    return response.ok;
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("❌ Failed to send Telegram notification:", errText);
+      return false;
+    }
+
+    return true;
   } catch (error) {
-    console.warn("Telegram notification backend unavailable:", error);
+    console.error("❌ Exception occurred while sending Telegram notification:", error);
     return false;
   }
 }

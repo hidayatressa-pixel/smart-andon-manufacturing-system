@@ -23,7 +23,7 @@ The system is equipped with **White-Label & Custom Branding** capabilities. Plan
 ### Methods to Customize Branding
 
 #### Method A: Direct In-App Upload (Instant & Persistent)
-1. Log in with an **Administrator** account (`ADMIN-99` / the configured `VITE_DEMO_PIN`) or **Supervisor** account.
+1. Log in with an **Administrator** account (`ADMIN-99` / PIN `9999`) or **Supervisor** account.
 2. Open **Settings** (Gear icon ⚙️ in the top header) OR navigate to the **Master Data** tab ➔ sub-tab **"Logo & Branding"**.
 3. Under **Logo Mode**, choose between:
    * **Default Demo Logo**: Minimalist geometric vector.
@@ -105,7 +105,7 @@ Authorizes plant personnel, badges, and roles.
 | `department` | **Yes** | `Machining` | Assigned department. |
 | `email` | No | `agus@factory.local` | Contact email (optional). |
 
-> **Note on Security**: Passwords and PINs are not accepted via CSV imports for security compliance. In Demo Mode, accounts use the locally configured `VITE_DEMO_PIN`.
+> **Note on Security**: Passwords and PINs are not accepted via CSV imports for security compliance. In Demo Mode, accounts default to standard testing PIN `1234`.
 
 ---
 
@@ -159,8 +159,8 @@ To broadcast immediate alerts to maintenance group chats:
 2. Add the bot to your maintenance team Telegram group and retrieve the Chat ID.
 3. Declare variables in `.env`:
    ```env
-   TELEGRAM_BOT_TOKEN="your_bot_token"
-   TELEGRAM_CHAT_ID="your_chat_id"
+   VITE_TELEGRAM_BOT_TOKEN="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+   VITE_TELEGRAM_CHAT_ID="-1009876543210"
    ```
 4. New Work Orders will be automatically formatted and dispatched to the group in real-time.
 

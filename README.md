@@ -48,10 +48,10 @@ The system provides a strictly controlled multi-tiered security model tailored t
 
 | Role | Badge ID (NPK) | Default PIN | Core Permissions & Operational Scope |
 | :--- | :--- | :--- | :--- |
-| **Operator** | `OP-1001` | `VITE_DEMO_PIN` | Create instant Andon calls on assigned lines; toggle line-stop state. |
-| **Technician** | `TECH-2001` | `VITE_DEMO_PIN` | Acknowledge alerts, log repair stages, and submit 5-Why RCA root cause resolutions. |
-| **Supervisor** | `SPV-3001` | `VITE_DEMO_PIN` | Review plant-wide OEE KPIs, Pareto metrics, MTTR performance, and export reports. |
-| **Administrator** | `ADMIN-99` | `VITE_DEMO_PIN` | Manage master datasets (Lines, Machines, Operators), configure branding, inspect audit logs. |
+| **Operator** | `OP-1001` | `1234` | Create instant Andon calls on assigned lines; toggle line-stop state. |
+| **Technician** | `TECH-2001` | `2345` | Acknowledge alerts, log repair stages, and submit 5-Why RCA root cause resolutions. |
+| **Supervisor** | `SPV-3001` | `3456` | Review plant-wide OEE KPIs, Pareto metrics, MTTR performance, and export reports. |
+| **Administrator** | `ADMIN-99` | `9999` | Manage master datasets (Lines, Machines, Operators), configure branding, inspect audit logs. |
 
 ---
 
@@ -135,8 +135,8 @@ VITE_APP_COMPANY="Your Company Name"
 VITE_APP_LOGO_URL=""
 
 # Telegram Bot Real-Time Notification Dispatcher (Optional)
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-TELEGRAM_CHAT_ID=your_telegram_channel_or_group_id
+VITE_TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+VITE_TELEGRAM_CHAT_ID=your_telegram_channel_or_group_id
 ```
 
 ---

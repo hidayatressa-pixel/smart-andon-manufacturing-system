@@ -100,8 +100,6 @@ export const INITIAL_MACHINES: MasterMachine[] = [
   { id: "MCH-006", code: "TORQUE-TX4-01", name: "Atlas Copco Digital Nutrunner", lineId: "LINE-5", lineName: "Line 5: Assembly", workstation: "OP-30 Torque Tightening", status: "active" },
 ];
 
-const INITIAL_DEMO_PIN = import.meta.env.VITE_DEMO_PIN || "";
-
 export const INITIAL_OPERATORS: UserProfile[] = [
   {
     id: "OP-1001",
@@ -109,7 +107,7 @@ export const INITIAL_OPERATORS: UserProfile[] = [
     badgeId: "OP-1001",
     role: "operator",
     department: "Machining",
-    pin: INITIAL_DEMO_PIN,
+    pin: "1234",
     lineAccess: ["LINE-1", "LINE-2"],
     email: "alex.op@factory.local"
   },
@@ -119,7 +117,7 @@ export const INITIAL_OPERATORS: UserProfile[] = [
     badgeId: "TECH-2001",
     role: "technician",
     department: "Maintenance & Tooling",
-    pin: INITIAL_DEMO_PIN,
+    pin: "1234",
     lineAccess: ["*"],
     email: "rudy.tech@factory.local"
   },
@@ -129,7 +127,7 @@ export const INITIAL_OPERATORS: UserProfile[] = [
     badgeId: "SPV-3001",
     role: "supervisor",
     department: "Production Control",
-    pin: INITIAL_DEMO_PIN,
+    pin: "1234",
     lineAccess: ["*"],
     email: "brian.spv@factory.local"
   },
@@ -139,7 +137,7 @@ export const INITIAL_OPERATORS: UserProfile[] = [
     badgeId: "admin01",
     role: "admin",
     department: "Plant Management & IT",
-    pin: INITIAL_DEMO_PIN,
+    pin: "8888",
     lineAccess: ["*"],
     email: "admin@smartandon.local"
   }

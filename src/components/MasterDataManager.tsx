@@ -44,8 +44,6 @@ import { INITIAL_LINES } from "../utils/initialData";
 import { getTranslation, TranslationKey } from "../utils/i18n";
 import { canManageMasterData } from "../utils/permissions";
 
-const DEMO_PIN = import.meta.env.VITE_DEMO_PIN || "";
-
 interface MasterDataManagerProps {
   lines: AndonLine[];
   currentUser: UserProfile | null;
@@ -330,9 +328,9 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
             lineAccess: ["*"]
           };
 
-          // In Demo Mode, attach a safe configured demo PIN for local auth simulation
+          // In Demo Mode, attach a safe mock PIN '1234' for local auth simulation
           if (IS_DEMO_MODE) {
-            opObj.pin = DEMO_PIN;
+            opObj.pin = "1234";
           }
 
           validatedOperators.push(opObj);
@@ -360,14 +358,14 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
       // Clear existing master operators first so we don't mix old mock operators
       try {
-        await clearAllMasterOperatorsInDb();
+        await clearAllMasterOperatorsInDb(currentUser || undefined);
       } catch (err) {
         console.warn("Could not pre-clear existing operators, overwriting directly:", err);
       }
 
       await bulkUploadMasterOperatorsInDb(validatedOperators, currentUser ? {
         name: currentUser.name,
-        id: currentUser.id,
+        id: currentUser.badgeId,
         role: currentUser.role
       } : undefined);
 
@@ -445,14 +443,14 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
       // Clean/Wipe existing lines first so that old mock/trial lines are not mixed with real uploaded lines
       try {
-        await clearAllMasterLinesInDb();
+        await clearAllMasterLinesInDb(currentUser || undefined);
       } catch (err) {
         console.warn("Could not pre-clear existing lines, overwriting directly:", err);
       }
 
       await bulkUploadMasterLinesInDb(parsedLines, currentUser ? {
         name: currentUser.name,
-        id: currentUser.id,
+        id: currentUser.badgeId,
         role: currentUser.role
       } : undefined);
 
@@ -517,14 +515,14 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
       // Clean/Wipe existing machines first so that old mock/trial machines are not mixed with real uploaded machines
       try {
-        await clearAllMasterMachinesInDb();
+        await clearAllMasterMachinesInDb(currentUser || undefined);
       } catch (err) {
         console.warn("Could not pre-clear existing machines, overwriting directly:", err);
       }
 
       await bulkUploadMasterMachinesInDb(parsedMachines, currentUser ? {
         name: currentUser.name,
-        id: currentUser.id,
+        id: currentUser.badgeId,
         role: currentUser.role
       } : undefined);
 
@@ -754,7 +752,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
     await saveMasterLineInDb(lineObj, currentUser ? {
       name: currentUser.name,
-      id: currentUser.id,
+      id: currentUser.badgeId,
       role: currentUser.role
     } : undefined);
 
@@ -787,7 +785,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
     name: "",
     role: "operator",
     department: "Production",
-    pin: DEMO_PIN,
+    pin: "1234",
   });
 
   const handleSaveOperatorForm = async (e: React.FormEvent) => {
@@ -800,13 +798,13 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       name: newOperatorData.name.trim(),
       role: newOperatorData.role,
       department: newOperatorData.department.trim() || "Production",
-      pin: newOperatorData.pin.trim() || DEMO_PIN,
+      pin: newOperatorData.pin.trim() || "1234",
       lineAccess: ["*"],
     };
 
     await saveMasterOperatorInDb(opObj, currentUser ? {
       name: currentUser.name,
-      id: currentUser.id,
+      id: currentUser.badgeId,
       role: currentUser.role
     } : undefined);
 
@@ -817,7 +815,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       name: "",
       role: "operator",
       department: "Production",
-      pin: DEMO_PIN,
+      pin: "1234",
     });
   };
 
@@ -830,7 +828,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       onConfirm: async () => {
         await deleteMasterOperatorInDb(badgeId, currentUser ? {
           name: currentUser.name,
-          id: currentUser.id,
+          id: currentUser.badgeId,
           role: currentUser.role
         } : undefined);
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -845,7 +843,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       name: op.name,
       role: op.role,
       department: op.department || "Production",
-      pin: op.pin || DEMO_PIN,
+      pin: op.pin || "1234",
     });
     setIsAddOperatorOpen(true);
   };
@@ -859,7 +857,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       onConfirm: async () => {
         await deleteMasterLineInDb(lineId, currentUser ? {
           name: currentUser.name,
-          id: currentUser.id,
+          id: currentUser.badgeId,
           role: currentUser.role
         } : undefined);
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -895,7 +893,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
           setCleanMessage(null);
           await clearAllTrialDataInDb(lines.length > 0 ? lines : INITIAL_LINES, currentUser ? {
             name: currentUser.name,
-            id: currentUser.id,
+            id: currentUser.badgeId,
             role: currentUser.role
           } : undefined);
 
@@ -1296,7 +1294,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                     name: "",
                     role: "operator",
                     department: "Production",
-                    pin: DEMO_PIN
+                    pin: "1234"
                   });
                   setIsAddOperatorOpen(true);
                 }}

@@ -160,7 +160,7 @@ export default function App() {
     // Save to Firestore with Audit Logging
     await createAndonCallInDb(newCall, currentUser ? {
       name: currentUser.name,
-      id: currentUser.id,
+      id: currentUser.badgeId,
       role: currentUser.role
     } : undefined);
 
@@ -189,7 +189,7 @@ export default function App() {
   ) => {
     await updateAndonCallInDb(callId, status, extra, currentUser ? {
       name: currentUser.name,
-      id: currentUser.id,
+      id: currentUser.badgeId,
       role: currentUser.role
     } : undefined);
 
@@ -207,7 +207,7 @@ export default function App() {
   const handleCancelCall = async (callId: string) => {
     await deleteAndonCallInDb(callId, currentUser ? {
       name: currentUser.name,
-      id: currentUser.id,
+      id: currentUser.badgeId,
       role: currentUser.role
     } : undefined);
   };
@@ -218,7 +218,7 @@ export default function App() {
     if (targetLine) {
       await saveMasterLineInDb({ ...targetLine, targetDaily }, currentUser ? {
         name: currentUser.name,
-        id: currentUser.id,
+        id: currentUser.badgeId,
         role: currentUser.role
       } : undefined);
     }
@@ -231,7 +231,7 @@ export default function App() {
         "login",
         `User Logout: ${currentUser.name}`,
         `User session logged out.`,
-        { name: currentUser.name, id: currentUser.id, role: currentUser.role }
+        { name: currentUser.name, id: currentUser.badgeId, role: currentUser.role }
       );
     }
     clearSession();
@@ -270,7 +270,7 @@ export default function App() {
       severity: "critical_line_stop",
       isLineStopped: true,
       operatorName: currentUser ? currentUser.name : "Alex Operator (Demo)",
-      operatorId: currentUser ? currentUser.id : "OP-9901",
+      operatorId: currentUser ? currentUser.badgeId : "OP-9901",
       machineId: "ROBOT-SIM-01",
       partNumber: "DEMO-PART-2026",
       description: "Optical sensor detects clamping position deviation. Conveyor auto line stop.",

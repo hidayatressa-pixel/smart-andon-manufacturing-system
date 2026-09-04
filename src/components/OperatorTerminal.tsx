@@ -151,7 +151,7 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
       severity,
       isLineStopped,
       operatorName: operatorName.trim() || (currentUser?.name || "Operator"),
-      operatorId: currentUser?.id || operatorId.trim() || "OP-00",
+      operatorId: operatorId.trim() || (currentUser?.badgeId || "OP-00"),
       machineId: machineId.trim() || undefined,
       partNumber: partNumber.trim() || undefined,
       description: autoDesc,

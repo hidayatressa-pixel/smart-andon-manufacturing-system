@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { UserProfile, UserRole, AppTheme, AppLanguage } from "../types";
 import { DEFAULT_USERS, saveSession } from "../utils/auth";
-import { logActivity } from "../lib/firestoreService";
+import { logActivity, IS_DEMO_MODE } from "../lib/firestoreService";
 import { getTranslation, TranslationKey } from "../utils/i18n";
 import { sanitizeString, sanitizeUserProfile } from "../utils/sanitizer";
 
@@ -30,7 +30,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isManualEntry, setIsManualEntry] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  if (!isOpen) return null;
+  if (!isOpen || !IS_DEMO_MODE) return null;
 
   const t = (key: TranslationKey, params?: Record<string, string | number>) => 
     getTranslation(language, key, params);

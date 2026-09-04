@@ -37,10 +37,17 @@ export function getFirebaseApp(): FirebaseApp {
     if (getApps().length > 0) {
       firebaseAppInstance = getApp();
     } else {
-      // Demo mode never receives or embeds a real credential. Firebase APIs are not
-      // called by the data layer until production configuration is present.
       firebaseAppInstance = initializeApp(
-        isFirebaseConfigured() ? firebaseConfig : { projectId: "smart-andon-local-demo" }
+        isFirebaseConfigured()
+          ? firebaseConfig
+          : {
+              apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoFallbackKeyOnly",
+              authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "demo.firebaseapp.com",
+              projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "demo-app",
+              storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "demo-app.appspot.com",
+              messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "000000000000",
+              appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:000000000000:web:0000000000000000000000"
+            }
       );
     }
   }

@@ -27,6 +27,19 @@ import { DEFAULT_USERS } from "../utils/auth";
 import { sendTelegramNotification, formatAndonCallTelegramMessage } from "../utils/telegram";
 import { safeLocalStorageSet, safeLocalStorageGet } from "../utils/sanitizer";
 
+
+function assertAdminAction(currentUser?: { role: string }): void {
+  if (!currentUser || currentUser.role !== "admin") {
+    throw new Error("Unauthorized: administrator privileges required for this action.");
+  }
+}
+
+function assertSupervisorAction(currentUser?: { role: string }): void {
+  if (!currentUser || !["admin", "supervisor"].includes(currentUser.role)) {
+    throw new Error("Unauthorized: supervisor privileges required for this action.");
+  }
+}
+
 // ==========================================
 // DUAL MODE ABSTRACTION (DEMO & FIREBASE)
 // ==========================================
@@ -199,7 +212,10 @@ export async function logActivity(
     const logsRef = collection(db, COLLECTIONS.LOGS);
     await addDoc(logsRef, cleanFirestorePayload(newLog as unknown as Record<string, unknown>));
   } catch (error) {
-    console.error("Failed to write activity log to Firestore:", error);
+    console.warn("Failed to write activity log to Firestore, falling back to local state:", error);
+    demoState.logs = [newLog, ...demoState.logs].slice(0, 150);
+    setLocalStorageData(DEMO_KEYS.LOGS, demoState.logs);
+    notifySubscribers("logs");
   }
 }
 
@@ -304,8 +320,10 @@ export async function createAndonCallInDb(
     const cleanedData = cleanFirestorePayload(finalCall as unknown as Record<string, unknown>);
     await setDoc(docRef, cleanedData, { merge: true });
   } catch (error) {
-    console.error("Failed to create call in Firestore:", error);
-    throw error;
+    console.warn("Failed to create call in Firestore, writing locally:", error);
+    demoState.calls = [finalCall, ...demoState.calls.filter(c => c.id !== callId)];
+    setLocalStorageData(DEMO_KEYS.CALLS, demoState.calls);
+    notifySubscribers("calls");
   }
   
   if (currentUser) {
@@ -374,8 +392,14 @@ export async function updateAndonCallInDb(
     const callDocRef = doc(db, COLLECTIONS.CALLS, callId);
     await setDoc(callDocRef, cleanFirestorePayload(updatePayload as unknown as Record<string, unknown>), { merge: true });
   } catch (err) {
-    console.error("Failed to update call in Firestore:", err);
-    throw err;
+    console.warn("Failed to update call in Firestore, updating local state:", err);
+    const existing = demoState.calls.find(c => c.id === callId);
+    if (existing) {
+      const updated = { ...existing, ...updatePayload };
+      demoState.calls = demoState.calls.map(c => c.id === callId ? updated : c);
+      setLocalStorageData(DEMO_KEYS.CALLS, demoState.calls);
+      notifySubscribers("calls");
+    }
   }
 
   if (user) {
@@ -416,6 +440,7 @@ export async function deleteAndonCallInDb(
   currentUser?: { name: string; id: string; role: string }, 
   ticketNo?: string
 ): Promise<void> {
+  assertSupervisorAction(currentUser);
   // Trigger Telegram Notification asynchronously for Cancellation (Non-blocking safe promise)
   void dispatchTelegramNotification(callId, "CANCEL");
 
@@ -440,8 +465,10 @@ export async function deleteAndonCallInDb(
     const callDocRef = doc(db, COLLECTIONS.CALLS, callId);
     await deleteDoc(callDocRef);
   } catch (e) {
-    console.error("Failed to delete call from Firestore:", e);
-    throw e;
+    console.warn("Failed to delete call from Firestore, deleting locally:", e);
+    demoState.calls = demoState.calls.filter(c => c.id !== callId);
+    setLocalStorageData(DEMO_KEYS.CALLS, demoState.calls);
+    notifySubscribers("calls");
   }
 
   if (currentUser) {
@@ -459,6 +486,7 @@ export async function deleteAndonCallInDb(
 }
 
 export async function clearAllCallsInDb(currentUser?: { name: string; id: string; role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.calls = [];
     setLocalStorageData(DEMO_KEYS.CALLS, demoState.calls);
@@ -504,6 +532,7 @@ export async function clearAllTrialDataInDb(
   defaultLines: AndonLine[],
   currentUser?: { name: string; id: string; role: string }
 ): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.calls = [];
     demoState.logs = [];
@@ -643,6 +672,7 @@ export function subscribeMasterLines(callback: (lines: AndonLine[]) => void): Un
 }
 
 export async function saveMasterLineInDb(line: AndonLine, currentUser?: { name: string; id: string; role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.lines = [line, ...demoState.lines.filter(l => l.id !== line.id)];
     setLocalStorageData(DEMO_KEYS.LINES, demoState.lines);
@@ -682,6 +712,7 @@ export async function saveMasterLineInDb(line: AndonLine, currentUser?: { name: 
 }
 
 export async function deleteMasterLineInDb(lineId: string, currentUser?: { name: string; id: string; role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.lines = demoState.lines.filter(l => l.id !== lineId);
     setLocalStorageData(DEMO_KEYS.LINES, demoState.lines);
@@ -720,7 +751,8 @@ export async function deleteMasterLineInDb(lineId: string, currentUser?: { name:
   }
 }
 
-export async function clearAllMasterLinesInDb(): Promise<void> {
+export async function clearAllMasterLinesInDb(currentUser?: { role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.lines = [];
     setLocalStorageData(DEMO_KEYS.LINES, demoState.lines);
@@ -741,7 +773,8 @@ export async function clearAllMasterLinesInDb(): Promise<void> {
   }
 }
 
-export async function clearAllMasterMachinesInDb(): Promise<void> {
+export async function clearAllMasterMachinesInDb(currentUser?: { role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.machines = [];
     setLocalStorageData(DEMO_KEYS.MACHINES, demoState.machines);
@@ -766,6 +799,7 @@ export async function bulkUploadMasterLinesInDb(
   lines: AndonLine[], 
   currentUser?: { name: string; id: string; role: string }
 ): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     const existingIds = lines.map(l => l.id);
     demoState.lines = [...lines, ...demoState.lines.filter(l => !existingIds.includes(l.id))];
@@ -843,6 +877,7 @@ export async function bulkUploadMasterMachinesInDb(
   machines: MasterMachine[], 
   currentUser?: { name: string; id: string; role: string }
 ): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     const existingIds = machines.map(m => m.id);
     demoState.machines = [...machines, ...demoState.machines.filter(m => !existingIds.includes(m.id))];
@@ -917,6 +952,7 @@ export function subscribeMasterOperators(callback: (operators: UserProfile[]) =>
 }
 
 export async function saveMasterOperatorInDb(operator: UserProfile, currentUser?: { name: string; id: string; role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.operators = [operator, ...demoState.operators.filter(op => op.badgeId !== operator.badgeId)];
     setLocalStorageData(DEMO_KEYS.OPERATORS, demoState.operators);
@@ -955,6 +991,7 @@ export async function saveMasterOperatorInDb(operator: UserProfile, currentUser?
 }
 
 export async function deleteMasterOperatorInDb(badgeId: string, currentUser?: { name: string; id: string; role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.operators = demoState.operators.filter(op => op.badgeId !== badgeId);
     setLocalStorageData(DEMO_KEYS.OPERATORS, demoState.operators);
@@ -991,7 +1028,8 @@ export async function deleteMasterOperatorInDb(badgeId: string, currentUser?: { 
   }
 }
 
-export async function clearAllMasterOperatorsInDb(): Promise<void> {
+export async function clearAllMasterOperatorsInDb(currentUser?: { role: string }): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     demoState.operators = [];
     setLocalStorageData(DEMO_KEYS.OPERATORS, demoState.operators);
@@ -1016,6 +1054,7 @@ export async function bulkUploadMasterOperatorsInDb(
   operators: UserProfile[],
   currentUser?: { name: string; id: string; role: string }
 ): Promise<void> {
+  assertAdminAction(currentUser);
   if (IS_DEMO_MODE) {
     const existingBadges = operators.map(op => op.badgeId);
     demoState.operators = [...operators, ...demoState.operators.filter(op => !existingBadges.includes(op.badgeId))];

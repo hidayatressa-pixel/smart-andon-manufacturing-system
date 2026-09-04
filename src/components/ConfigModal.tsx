@@ -77,7 +77,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       setCleanStatus(null);
       await clearAllTrialDataInDb(lines.length > 0 ? lines : INITIAL_LINES, currentUser ? {
         name: currentUser.name,
-        id: currentUser.id,
+        id: currentUser.badgeId,
         role: currentUser.role,
       } : undefined);
       setCleanStatus(t("cleanTrialDataSuccess"));
