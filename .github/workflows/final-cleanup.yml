@@ -1,0 +1,102 @@
+name: Final source cleanup
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/final-cleanup.yml']
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply final revision
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # User-facing terminology cleanup. Keep legacy CSV aliases such as namalini/kodelini
+          # in MasterDataManager for backward-compatible imports.
+          replacements = {
+              'Respon Teknisi & Maintenance (Dispatch)': 'Respon Leader / PIC (Dispatch)',
+              'Respon Teknisi & Maintenance': 'Respon Leader / PIC',
+              'Respon Teknisi & Support': 'Respon Leader / PIC',
+              'Respon Teknisi': 'Respon Leader / PIC',
+              'Teknisi / Leader / Logistik menerima notifikasi Work Order (WO)': 'Leader / PIC terkait menerima notifikasi Work Order (WO)',
+              'Panggil bantuan teknisi maintenance, suplai material, inspektur QC, atau supervisor dalam 1 sentuhan.': 'Panggil Leader / PIC terkait untuk masalah mesin, leader, atau material support dalam 1 sentuhan.',
+              'Teknisi Maintenance Shift 1': 'Leader / PIC Shift 1',
+              'Technician Demo': 'Leader / PIC Demo',
+              'technician.demo@smartandon.local': 'leader.demo@smartandon.local',
+              'Technician': 'Leader / PIC',
+              'technician': 'leader',
+              'TEKNISI': 'LEADER / PIC',
+              'Teknisi': 'Leader / PIC',
+          }
+
+          for p in Path('src').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in {'.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.md'}:
+                  continue
+              text = p.read_text(encoding='utf-8')
+              original = text
+              for old, new in replacements.items():
+                  text = text.replace(old, new)
+              # Standardize visible Indonesian terminology. Do not alter legacy import aliases.
+              if p.name != 'MasterDataManager.tsx':
+                  text = text.replace('LINI', 'LINE').replace('Lini', 'Line').replace('lini', 'line')
+              if text != original:
+                  p.write_text(text, encoding='utf-8')
+
+          # Factory Clean must preserve ONLY the five default master-user profiles in production.
+          fs = Path('src/lib/firestoreService.ts')
+          text = fs.read_text(encoding='utf-8')
+          old = '''  // Production is fail-closed: never pretend a remote reset succeeded by silently using local fallback.
+  const defaultBadges = new Set(DEFAULT_USERS.map((user) => user.badgeId));
+  const operatorSnapshot = await getDocs(collection(db, COLLECTIONS.OPERATORS));
+  const defaultOperatorDocIds = new Set(
+    operatorSnapshot.docs
+      .filter((d) => defaultBadges.has(String(d.data().badgeId || "")))
+      .map((d) => d.id)
+  );
+
+  // Never allow Factory Clean to remove the currently authenticated admin profile.
+  const activeAdminDoc = operatorSnapshot.docs.find((d) =>
+    d.id === currentUser?.id || String(d.data().badgeId || "") === currentUser?.id
+  );
+  if (activeAdminDoc) defaultOperatorDocIds.add(activeAdminDoc.id);
+'''
+          new = '''  // Production is fail-closed: preserve ONLY profiles matching the five default master users.
+  // Firestore document IDs remain Firebase Auth UIDs; Factory Clean never recreates UID profiles by badge ID.
+  const defaultBadges = new Set(DEFAULT_USERS.map((user) => user.badgeId.toLowerCase()));
+  const operatorSnapshot = await getDocs(collection(db, COLLECTIONS.OPERATORS));
+  const defaultOperatorDocIds = new Set(
+    operatorSnapshot.docs
+      .filter((d) => defaultBadges.has(String(d.data().badgeId || "").toLowerCase()))
+      .map((d) => d.id)
+  );
+
+  // Abort before deleting anything unless the canonical admin01 Firebase profile exists.
+  // This prevents Factory Clean from locking the installation out of administration.
+  const defaultAdminDoc = operatorSnapshot.docs.find((d) =>
+    String(d.data().badgeId || "").toLowerCase() === "admin01" && d.data().role === "admin"
+  );
+  if (!defaultAdminDoc) {
+    throw new Error("Factory Clean dibatalkan: profil Firebase admin01 belum tersedia. Provision admin01 terlebih dahulu.");
+  }
+'''
+          if old not in text:
+              raise SystemExit('Expected Factory Clean production block was not found; refusing unsafe partial edit.')
+          fs.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/final-cleanup.yml
+      - name: Commit cleaned source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: finalize Leader PIC terminology and Factory Clean"
+          git push
