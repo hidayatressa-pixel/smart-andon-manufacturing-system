@@ -5,9 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
-    // GitHub Pages serves this project from /Andon_R1/ rather than domain root.
+    // GitHub Pages serves this project from /smart-andon-manufacturing-system/ rather than domain root.
     // This makes Vite generate asset URLs that work on the deployed Pages site.
-    base: '/Andon_R1/',
+    base: '/smart-andon-manufacturing-system/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
