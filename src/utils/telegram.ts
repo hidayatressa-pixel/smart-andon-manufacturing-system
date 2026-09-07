@@ -1,4 +1,5 @@
 import { AndonCall } from "../types";
+import { getFirebaseAuth } from "../lib/firebase";
 
 function escapeHtml(text: string | undefined | null): string {
   if (!text) return "-";
@@ -13,15 +14,26 @@ function escapeHtml(text: string | undefined | null): string {
 /**
  * Sends a pre-formatted notification through the same-origin backend.
  * Telegram credentials stay exclusively on the server and are never bundled
- * into browser JavaScript.
+ * into browser JavaScript. Production requests include the signed-in user's
+ * Firebase ID token so the backend can reject unauthenticated callers.
  */
 export async function sendTelegramNotification(message: string): Promise<boolean> {
   if (!message || message.trim() === "") return false;
 
   try {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      console.error("Telegram notification skipped: Firebase authentication is required.");
+      return false;
+    }
+
+    const idToken = await user.getIdToken();
     const response = await fetch("/api/notifications/telegram", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify({ message }),
     });
 
