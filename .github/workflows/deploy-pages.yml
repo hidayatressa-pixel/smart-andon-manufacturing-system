@@ -31,10 +31,23 @@ jobs:
         run: npm ci
 
       - name: Build Vite site for GitHub Pages
-        run: npx vite build
+        run: npx vite build --emptyOutDir
         env:
           GITHUB_PAGES: 'true'
           VITE_DATA_PROVIDER: demo
+
+      - name: Verify Pages build
+        run: |
+          test -f dist/index.html
+          if grep -q '/src/main.tsx' dist/index.html; then
+            echo 'ERROR: dist/index.html still references Vite source entry.'
+            exit 1
+          fi
+          grep -q '/smart-andon-manufacturing-system/assets/' dist/index.html
+          echo 'Verified: deploy artifact contains compiled GitHub Pages assets.'
+
+      - name: Disable Jekyll processing
+        run: touch dist/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
