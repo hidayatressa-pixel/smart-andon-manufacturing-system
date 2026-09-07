@@ -6,6 +6,48 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const MAX_TELEGRAM_MESSAGE_LENGTH = 4096;
+const TELEGRAM_RATE_LIMIT_WINDOW_MS = 60_000;
+const TELEGRAM_RATE_LIMIT_MAX_REQUESTS = 10;
+const telegramRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+function getBearerToken(authorization?: string): string | null {
+  if (!authorization?.startsWith("Bearer ")) return null;
+  const token = authorization.slice(7).trim();
+  return token || null;
+}
+
+async function verifyFirebaseIdToken(idToken: string): Promise<boolean> {
+  const apiKey = process.env.FIREBASE_WEB_API_KEY?.trim() || process.env.VITE_FIREBASE_API_KEY?.trim();
+  if (!apiKey) return false;
+
+  try {
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!response.ok) return false;
+    const payload = await response.json() as { users?: Array<{ localId?: string }> };
+    return Boolean(payload.users?.[0]?.localId);
+  } catch (error) {
+    console.error("Firebase ID token verification failed.", error);
+    return false;
+  }
+}
+
+function isTelegramRateLimited(key: string): boolean {
+  const now = Date.now();
+  const current = telegramRateLimit.get(key);
+
+  if (!current || current.resetAt <= now) {
+    telegramRateLimit.set(key, { count: 1, resetAt: now + TELEGRAM_RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  current.count += 1;
+  return current.count > TELEGRAM_RATE_LIMIT_MAX_REQUESTS;
+}
 
 async function startServer() {
   const app = express();
@@ -27,6 +69,15 @@ async function startServer() {
       return res.status(503).json({ ok: false, error: "Telegram notifications are not configured." });
     }
 
+    const idToken = getBearerToken(req.get("authorization"));
+    if (!idToken || !(await verifyFirebaseIdToken(idToken))) {
+      return res.status(401).json({ ok: false, error: "Authentication required." });
+    }
+
+    if (isTelegramRateLimited(req.ip || "unknown")) {
+      return res.status(429).json({ ok: false, error: "Too many notification requests. Try again shortly." });
+    }
+
     if (!message || message.length > MAX_TELEGRAM_MESSAGE_LENGTH) {
       return res.status(400).json({ ok: false, error: "Invalid Telegram message." });
     }
@@ -42,6 +93,7 @@ async function startServer() {
         console.error("Telegram notification failed with HTTP status", telegramResponse.status);
         return res.status(502).json({ ok: false, error: "Telegram delivery failed." });
       }
+
       return res.json({ ok: true });
     } catch (error) {
       console.error("Telegram notification request failed.", error);
