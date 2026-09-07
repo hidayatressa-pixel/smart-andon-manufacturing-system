@@ -1,5 +1,6 @@
 name: Deploy Smart Andon to GitHub Pages
 
+# Republish marker: 2026-09-07 clean Pages reset
 on:
   push:
     branches: [main]
