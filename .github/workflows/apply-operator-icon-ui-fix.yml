@@ -1,0 +1,58 @@
+name: Apply Operator Notification Icon UI Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-operator-icon-ui-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch active-call icon only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/components/OperatorTerminal.tsx')
+          text = path.read_text()
+          old = '''            <div className={`p-3 rounded-2xl shadow-md ${activeCallTheme.icon}`}>
+              <Flame className="w-7 h-7" />
+            </div>'''
+          new = '''            <div className={`p-3 rounded-2xl shadow-md ${activeCallTheme.icon}`}>
+              {activeCallPrimaryCategory === "leader_call" ? (
+                <UserCheck className="w-7 h-7" />
+              ) : activeCallPrimaryCategory === "material_support" ? (
+                <Boxes className="w-7 h-7" />
+              ) : (
+                <Flame className="w-7 h-7" />
+              )}
+            </div>'''
+          if old not in text:
+              raise SystemExit('Expected active-call icon block was not found; refusing to modify anything.')
+          if text.count(old) != 1:
+              raise SystemExit('Expected exactly one active-call icon block; refusing to modify anything.')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Verify only intended UI mapping
+        run: |
+          grep -q 'activeCallPrimaryCategory === "leader_call"' src/components/OperatorTerminal.tsx
+          grep -q '<UserCheck className="w-7 h-7" />' src/components/OperatorTerminal.tsx
+          grep -q '<Boxes className="w-7 h-7" />' src/components/OperatorTerminal.tsx
+
+      - name: Commit UI-only change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/OperatorTerminal.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix(ui): match active Andon notification icon to call type'
+          git push origin main
