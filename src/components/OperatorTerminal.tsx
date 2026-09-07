@@ -259,7 +259,13 @@ export const OperatorTerminal: React.FC<OperatorTerminalProps> = ({
         }`}>
           <div className="flex items-start gap-3.5">
             <div className={`p-3 rounded-2xl shadow-md ${activeCallTheme.icon}`}>
-              <Flame className="w-7 h-7" />
+              {activeCallPrimaryCategory === "leader_call" ? (
+                <UserCheck className="w-7 h-7" />
+              ) : activeCallPrimaryCategory === "material_support" ? (
+                <Boxes className="w-7 h-7" />
+              ) : (
+                <Flame className="w-7 h-7" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
