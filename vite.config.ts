@@ -4,9 +4,12 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
+  // GitHub Pages serves this project from /smart-andon-manufacturing-system/.
+  // Other deployments (local, Netlify, Express, buyer-owned hosting) keep '/'.
+  const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
   return {
-    // Root-relative assets work with Netlify and other standard web hosts.
-    base: '/',
+    base: isGitHubPages ? '/smart-andon-manufacturing-system/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
