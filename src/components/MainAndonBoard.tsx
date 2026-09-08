@@ -5,24 +5,16 @@ import {
   Clock, 
   Flame, 
   AlertTriangle, 
-  ArrowRight, 
+  
   TrendingUp, 
   Activity, 
   Zap,
-  HelpCircle,
-  Boxes,
-  ChevronUp,
-  ChevronDown,
-  PhoneCall,
-  Tv,
-  Wrench,
-  Database
-} from "lucide-react";
+    Boxes,
+            } from "lucide-react";
 import { AndonCall, AndonLine, AppTheme, AppLanguage } from "../types";
 import { CATEGORIES_DATA, normalizeCategoryToPrimary } from "../utils/categories";
 import { formatDuration, formatTimestamp } from "../utils/storage";
 import { getTranslation, TranslationKey } from "../utils/i18n";
-import { safeLocalStorageSet, safeLocalStorageGet } from "../utils/sanitizer";
 
 interface MainAndonBoardProps {
   lines: AndonLine[];
@@ -42,20 +34,10 @@ export const MainAndonBoard: React.FC<MainAndonBoardProps> = ({
   language = "id",
 }) => {
   const [timerTick, setTimerTick] = useState(Date.now());
-  const [showGuide, setShowGuide] = useState<boolean>(() => {
-    return safeLocalStorageGet("andon_show_guide") !== "false";
-  });
-
   const t = (key: TranslationKey, params?: Record<string, string | number>) => 
     getTranslation(language, key, params);
 
   const isLight = theme === "light";
-
-  const toggleGuide = () => {
-    const nextState = !showGuide;
-    setShowGuide(nextState);
-    safeLocalStorageSet("andon_show_guide", String(nextState));
-  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -80,130 +62,6 @@ export const MainAndonBoard: React.FC<MainAndonBoardProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Interactive Workflow Guide for New Users */}
-      <div className={`border rounded-2xl p-4 sm:p-5 transition-all shadow-sm ${
-        isLight 
-          ? "bg-slate-50/80 border-slate-200 text-slate-900" 
-          : "bg-neutral-900/90 border-neutral-800 text-neutral-100"
-      }`}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-              isLight ? "bg-amber-100 text-amber-800" : "bg-amber-500/20 text-amber-400"
-            }`}>
-              <HelpCircle className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold tracking-tight">
-                {t("quickGuideTitle")}
-              </h3>
-              <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-neutral-400"}`}>
-                {t("quickGuideSubtitle")}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={toggleGuide}
-            className={`text-xs font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1 border transition-colors ${
-              isLight 
-                ? "bg-white hover:bg-slate-100 border-slate-200 text-slate-700" 
-                : "bg-neutral-800 hover:bg-neutral-700 border-neutral-700 text-neutral-300"
-            }`}
-          >
-            <span>{showGuide ? t("hideGuide") : t("showGuide")}</span>
-            {showGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {showGuide && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-neutral-800">
-            {/* Step 1 */}
-            <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              isLight ? "bg-white border-slate-200/80 shadow-xs" : "bg-neutral-950 border-neutral-800/80"
-            }`}>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
-                    <PhoneCall className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold">{t("step1Title")}</span>
-                </div>
-                <p className={`text-[11px] leading-relaxed ${isLight ? "text-slate-600" : "text-neutral-400"}`}>
-                  {t("step1Desc")}
-                </p>
-              </div>
-              <button
-                onClick={() => onNavigateToCall(lines[0]?.id || "LINE-1")}
-                className={`mt-2.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1`}
-              >
-                <span>{language === "en" ? "Open Operator Terminal" : "Buka Terminal Operator"}</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            {/* Step 2 */}
-            <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              isLight ? "bg-white border-slate-200/80 shadow-xs" : "bg-neutral-950 border-neutral-800/80"
-            }`}>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-red-500/15 text-red-600 flex items-center justify-center">
-                    <Tv className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold">{t("step2Title")}</span>
-                </div>
-                <p className={`text-[11px] leading-relaxed ${isLight ? "text-slate-600" : "text-neutral-400"}`}>
-                  {t("step2Desc")}
-                </p>
-              </div>
-              <span className={`mt-2.5 text-[11px] font-medium ${isLight ? "text-slate-400" : "text-neutral-500"}`}>
-                Real-time Sync & Audio Alert
-              </span>
-            </div>
-
-            {/* Step 3 */}
-            <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              isLight ? "bg-white border-slate-200/80 shadow-xs" : "bg-neutral-950 border-neutral-800/80"
-            }`}>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center">
-                    <Wrench className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold">{t("step3Title")}</span>
-                </div>
-                <p className={`text-[11px] leading-relaxed ${isLight ? "text-slate-600" : "text-neutral-400"}`}>
-                  {t("step3Desc")}
-                </p>
-              </div>
-              <span className={`mt-2.5 text-[11px] font-medium ${isLight ? "text-slate-400" : "text-neutral-500"}`}>
-                {language === "en" ? "Rapid On-Site Response" : "Penanganan cepat di line"}
-              </span>
-            </div>
-
-            {/* Step 4 */}
-            <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              isLight ? "bg-white border-slate-200/80 shadow-xs" : "bg-neutral-950 border-neutral-800/80"
-            }`}>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
-                    <Database className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold">{t("step4Title")}</span>
-                </div>
-                <p className={`text-[11px] leading-relaxed ${isLight ? "text-slate-600" : "text-neutral-400"}`}>
-                  {t("step4Desc")}
-                </p>
-              </div>
-              <span className={`mt-2.5 text-[11px] font-medium ${isLight ? "text-slate-400" : "text-neutral-500"}`}>
-                Firestore Cloud & Export Excel
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Top KPI Cards (Andon KPI Header) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Plant Status / Running Lines */}
