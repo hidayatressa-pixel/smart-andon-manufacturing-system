@@ -12,6 +12,23 @@ export const DEFAULT_BRANDING: BrandConfig = {
   logoHeight: 34,
 };
 
+/** Decode legacy HTML entities that older sanitizer versions stored repeatedly. */
+function decodeLegacyEntities(value: unknown): string {
+  let text = typeof value === "string" ? value : "";
+  for (let i = 0; i < 10; i += 1) {
+    const decoded = text
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#x27;|&#39;/gi, "'")
+      .replace(/&#x60;/gi, "`");
+    if (decoded === text) break;
+    text = decoded;
+  }
+  return text;
+}
+
 /**
  * Load current branding configuration.
  * Checks localStorage first, then environment variables, then falls back to default demo.
@@ -25,8 +42,13 @@ export function loadSavedBranding(): BrandConfig {
       const sanitized = sanitizeBrandConfig({
         ...DEFAULT_BRANDING,
         ...parsed,
-        customAppName: parsed.customAppName || import.meta.env.VITE_APP_NAME || DEFAULT_BRANDING.customAppName,
+        customLogoText: decodeLegacyEntities(parsed.customLogoText),
+        customAppName: decodeLegacyEntities(parsed.customAppName) || import.meta.env.VITE_APP_NAME || DEFAULT_BRANDING.customAppName,
+        customAppSubtitle: decodeLegacyEntities(parsed.customAppSubtitle) || DEFAULT_BRANDING.customAppSubtitle,
       });
+
+      // Persist the migrated value so old &amp;amp; data is repaired once.
+      safeLocalStorageSet(BRANDING_STORAGE_KEY, JSON.stringify(sanitized));
       return sanitized;
     }
   } catch (e) {
@@ -52,7 +74,12 @@ export function loadSavedBranding(): BrandConfig {
 export function saveBrandingToStorage(config: BrandConfig): void {
   if (typeof window === "undefined") return;
   try {
-    const sanitized = sanitizeBrandConfig(config);
+    const sanitized = sanitizeBrandConfig({
+      ...config,
+      customLogoText: decodeLegacyEntities(config.customLogoText),
+      customAppName: decodeLegacyEntities(config.customAppName),
+      customAppSubtitle: decodeLegacyEntities(config.customAppSubtitle),
+    });
     safeLocalStorageSet(BRANDING_STORAGE_KEY, JSON.stringify(sanitized));
     window.dispatchEvent(new CustomEvent("andon_brand_change", { detail: sanitized }));
   } catch (e) {
@@ -72,4 +99,3 @@ export function resetBrandingToDefault(): BrandConfig {
   saveBrandingToStorage(resetConfig);
   return resetConfig;
 }
-
