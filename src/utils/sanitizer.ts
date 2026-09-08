@@ -7,7 +7,9 @@
 import { UserProfile, BrandConfig, UserRole } from "../types";
 
 /**
- * Strips dangerous HTML tags, JavaScript event handlers, and escapes special HTML entities
+ * Sanitizes plain text for React rendering/storage.
+ * React escapes text nodes at render time, so storing HTML-encoded entities here would
+ * cause repeated encoding (& -> &amp; -> &amp;amp;) every time branding is saved.
  */
 export function sanitizeString(val: unknown): string {
   if (val === null || val === undefined) return "";
@@ -15,12 +17,7 @@ export function sanitizeString(val: unknown): string {
   return str
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
     .replace(/<[^>]+>/g, "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    .replace(/`/g, "&#x60;");
+    .replace(/[\u0000-\u001F\u007F]/g, "");
 }
 
 /**
