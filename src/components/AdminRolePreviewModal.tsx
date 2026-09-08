@@ -28,7 +28,7 @@ export const AdminRolePreviewModal: React.FC<AdminRolePreviewModalProps> = ({ is
     <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4" onMouseDown={onClose}>
       <div className={`w-full max-w-sm rounded-2xl border shadow-2xl ${isLight ? "bg-white border-slate-200 text-slate-900" : "bg-neutral-900 border-neutral-700 text-white"}`} onMouseDown={(e) => e.stopPropagation()}>
         <div className={`flex items-center justify-between px-4 py-3 border-b ${isLight ? "border-slate-200" : "border-neutral-800"}`}>
-          <div className="flex items-center gap-2"><Eye className="w-4 h-4"/><span className="font-bold text-sm">{language === "en" ? "Preview Role" : "Lihat Sebagai"}</span></div>
+          <div className="flex items-center gap-2"><Eye className="w-4 h-4"/><span className="font-bold text-sm">{language === "en" ? "Switch Preview Account" : "Switch Preview Akun"}</span></div>
           <button onClick={onClose} className="p-1.5 rounded-lg" aria-label="Close"><X className="w-4 h-4"/></button>
         </div>
         <div className="p-3 grid gap-2">
@@ -37,9 +37,6 @@ export const AdminRolePreviewModal: React.FC<AdminRolePreviewModalProps> = ({ is
               {labels[item]}
             </button>
           ))}
-        </div>
-        <div className={`px-4 pb-3 text-[10px] ${isLight ? "text-slate-500" : "text-neutral-400"}`}>
-          {language === "en" ? "Preview only. Admin session remains active and no demo master data is created." : "Hanya preview. Sesi Admin tetap aktif dan tidak membuat master data demo."}
         </div>
       </div>
     </div>
